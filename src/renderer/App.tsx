@@ -1,7 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import icon from '../../assets/icon.svg';
-import './App.css';
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 
 declare global {
   interface Window {
@@ -12,23 +9,63 @@ declare global {
   }
 }
 
-function Hello() {
+function LocalEmbeddingAPI() {
   const [port, setPort] = useState(3005);
   const [serverStatus, setServerStatus] = useState('Stopped');
+  const [selectedModel, setSelectedModel] = useState('bge-large-en');
+
+  const models = [
+    'bge-large-en',
+    'bge-base-en',
+    'gte-large',
+    'gte-base',
+    'e5-large-v2',
+    'bge-small-en',
+    'instructor-xl',
+    'instructor-large',
+    'e5-base-v2',
+    'multilingual-e5-large',
+    'e5-large',
+    'gte-small',
+    'text-embedding-ada-002',
+    'e5-base',
+    'e5-small-v2',
+    'instructor-base',
+    'sentence-t5-xxl',
+    'multilingual-e5-base',
+    'XLM-3B5-embedding',
+    'gtr-t5-xxl',
+    'SGPT-5.8B-weightedmean-msmarco-specb-bitfit',
+    'e5-small',
+    'gtr-t5-xl',
+    'gtr-t5-large',
+    'XLM-0B6-embedding',
+    'multilingual-e5-small',
+    'sentence-t5-xl',
+    'all-mpnet-base-v2',
+    'sgpt-bloom-7b1-msmarco',
+    'jina-embedding-l-en-v1',
+    'SGPT-2.7B-weightedmean-msmarco-specb-bitfit',
+    'sentence-t5-large',
+    'MegatronBert-1B3-embedding',
+    'all-MiniLM-L12-v2',
+    'all-MiniLM-L6-v2',
+    'jina-embedding-b-en-v1',
+    'SGPT-1.3B-weightedmean-msmarco-specb-bitfit',
+    'gtr-t5-base',
+    'contriever-base-msmarco',
+    // Add more models here if needed
+  ];
 
   useEffect(() => {
     window.myAPI.receive('server-status', (message) => {
       setServerStatus(message);
     });
-
-    // Clean-up function
-    return () => {
-      // Unsubscribe any IPC event listeners if needed
-    };
+    return () => {};
   }, []);
 
   const handleStartServer = () => {
-    window.myAPI.send('start-server', port);
+    window.myAPI.send('start-server', { port, selectedModel });
   };
 
   const handleStopServer = () => {
@@ -39,48 +76,36 @@ function Hello() {
     setPort(Number(e.target.value));
   };
 
+  const handleModelChange = (e) => {
+    setSelectedModel(e.target.value);
+  };
+
   return (
-    <div>
-      <div>
+    <div className="App">
+      <div className="label-input">
         <label>
           Port:
           <input type="number" value={port} onChange={handlePortChange} />
         </label>
+      </div>
+      <div className="label-input">
+        <label>
+          Model:
+          <select value={selectedModel} onChange={handleModelChange}>
+            {models.map((model, index) => (
+              <option key={index} value={model}>
+                {model}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="button-group">
         <button onClick={handleStartServer}>Start Server</button>
         <button onClick={handleStopServer}>Stop Server</button>
       </div>
       <div>
-        <p>Server Status: {serverStatus}</p>
-      </div>
-      <div className="Hello">
-        <img width="200" alt="icon" src={icon} />
-      </div>
-      <h1>electron-react-boilerplate</h1>
-      <div className="Hello">
-        <a
-          href="https://electron-react-boilerplate.js.org/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="books">
-              📚
-            </span>
-            Read our docs
-          </button>
-        </a>
-        <a
-          href="https://github.com/sponsors/electron-react-boilerplate"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="folded hands">
-              🙏
-            </span>
-            Donate
-          </button>
-        </a>
+        <p className="status-text">Server Status: {serverStatus}</p>
       </div>
     </div>
   );
@@ -88,10 +113,6 @@ function Hello() {
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Hello />} />
-      </Routes>
-    </Router>
+    <LocalEmbeddingAPI />
   );
 }

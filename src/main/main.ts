@@ -15,8 +15,7 @@ async function initializeExtractor(selectedModel: string) {
   extractor = await pipeline('feature-extraction', selectedModel);
 }
 
-
-let actualModel="Xenova/all-MiniLM-L12-v2"
+let actualModel: string = "Xenova/all-MiniLM-L12-v2"
 initializeExtractor(actualModel);
 
 // Initialize Express
@@ -26,7 +25,7 @@ expressApp.use(bodyParser.json());
 expressApp.post('/api/embeddings', async (req: Request, res: Response) => {
   const { input, model } = req.body;
 
-  if (model !== actualModel){
+  if (model && model !== actualModel){
     actualModel = model
     await initializeExtractor(actualModel);
   }
@@ -43,8 +42,9 @@ expressApp.post('/api/embeddings', async (req: Request, res: Response) => {
       embeddings = await createEmbedding(input, model);
     }
 
+
     const results = {
-      model,
+      model: actualModel,
       usage: {
         prompt_tokens: 8,
         total_tokens: 8
@@ -71,46 +71,19 @@ async function createEmbedding(input: string, model: string): Promise<any> {
   return results.data;
 }
 
-expressApp.post('/api/embeddings2', async (req: Request, res: Response) => {
-  const { input, model, user } = req.body;
-
-  if (!input || !model) {
-    return res.status(400).json({ error: 'input and model are required fields' });
-  }
-
-  try {
-    const embedding = await createEmbedding(input, model);
-    return res.json({
-      object: 'list',
-      data: [embedding],
-      model,
-      usage: {
-        prompt_tokens: 8,  // Dummy value; your real token usage would go here
-        total_tokens: 8    // Dummy value; your real token usage would go here
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-
-// Create an HTTP Server
-//let server = http.createServer(expressApp);
-
-// Listen on port 3005
-/*server.listen(3005, () => {
-  console.log('Server running on http://localhost:3005/');
-});
-*/
-
 let server;
-ipcMain.on('start-server', (event, port) => {
+ipcMain.on('start-server', async (event, {port,selectedModel}) => {
   if (!server) {
+    if (selectedModel !== actualModel){
+      actualModel = selectedModel
+      console.log("Changing to ",selectedModel,"...")
+      await initializeExtractor(actualModel);
+      console.log("ِActual model = ",model)
+    }
     server = http.createServer(expressApp);
     server.listen(port, () => {
       console.log(`Server running on http://localhost:${port}/`);
-      event.reply('server-status', `Server running on http://localhost:${port}/`);
+      event.reply('server-status', `Server running on http://localhost:${port}/ model: ${actualModel}`);
     });
   }
 });
