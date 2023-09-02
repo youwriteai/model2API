@@ -1,20 +1,141 @@
-/* eslint global-require: off, no-console: off, promise/always-return: off */
-
-/**
- * This module executes inside of electron's main process. You can start
- * electron renderer process from here and communicate with the other processes
- * through IPC.
- *
- * When running `npm run build` or `npm run build:main`, this file is compiled to
- * `./src/main.js` using webpack. This gives us some performance wins.
- */
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import express, { Request, Response } from 'express';
+import * as http from 'http';
+import bodyParser from 'body-parser';
 
+let extractor: any; 
+async function initializeExtractor(selectedModel: string) {
+  const TransformersApi = Function('return import("@xenova/transformers")')();
+  const { pipeline } = await TransformersApi;
+  extractor = await pipeline('feature-extraction', selectedModel);
+}
+
+
+let actualModel="Xenova/all-MiniLM-L12-v2"
+initializeExtractor(actualModel);
+
+// Initialize Express
+const expressApp = express();
+expressApp.use(bodyParser.json());
+// Create a simple "Hello, World!" API endpoint
+expressApp.post('/api/embeddings', async (req: Request, res: Response) => {
+  const { input, model } = req.body;
+
+  if (model !== actualModel){
+    actualModel = model
+    await initializeExtractor(actualModel);
+  }
+  try {
+    if (!extractor) {
+      return res.status(500).json({ error: 'Extractor not initialized'});
+    }
+
+    let embeddings;
+
+    if (Array.isArray(input)) {
+      embeddings = await Promise.all(input.map(singleInput => createEmbedding(singleInput, model)));
+    } else {
+      embeddings = await createEmbedding(input, model);
+    }
+
+    const results = {
+      model,
+      usage: {
+        prompt_tokens: 8,
+        total_tokens: 8
+      },
+      data: Array.isArray(embeddings) ? embeddings.map((embedding, index) => ({
+        object: 'embedding',
+        embedding,
+        index
+      })) : [{
+        object: 'embedding',
+        embedding: embeddings,
+        index: 0
+      }]
+    };
+
+    return res.json(results);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+async function createEmbedding(input: string, model: string): Promise<any> {
+  const results = await extractor(input, { pooling: 'mean', normalize: true });
+  return results.data;
+}
+
+expressApp.post('/api/embeddings2', async (req: Request, res: Response) => {
+  const { input, model, user } = req.body;
+
+  if (!input || !model) {
+    return res.status(400).json({ error: 'input and model are required fields' });
+  }
+
+  try {
+    const embedding = await createEmbedding(input, model);
+    return res.json({
+      object: 'list',
+      data: [embedding],
+      model,
+      usage: {
+        prompt_tokens: 8,  // Dummy value; your real token usage would go here
+        total_tokens: 8    // Dummy value; your real token usage would go here
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Create an HTTP Server
+//let server = http.createServer(expressApp);
+
+// Listen on port 3005
+/*server.listen(3005, () => {
+  console.log('Server running on http://localhost:3005/');
+});
+*/
+
+let server;
+ipcMain.on('start-server', (event, port) => {
+  if (!server) {
+    server = http.createServer(expressApp);
+    server.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}/`);
+      event.reply('server-status', `Server running on http://localhost:${port}/`);
+    });
+  }
+});
+
+ipcMain.on('stop-server', (event) => {
+  if (server) {
+    server.close(() => {
+      console.log("Server stopped.");
+      event.reply('server-status', 'Server stopped.');
+      server = null;
+    });
+  }
+});
+
+ipcMain.on('change-port', (event, newPort) => {
+  if (server) {
+    server.close(() => {
+      server = http.createServer(expressApp);
+      server.listen(newPort, () => {
+        console.log(`Server running on http://localhost:${newPort}/`);
+        event.reply('server-status', `Server running on http://localhost:${newPort}/`);
+      });
+    });
+  }
+});
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
