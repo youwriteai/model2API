@@ -1,4 +1,10 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable no-console */
+/* eslint-disable jsx-a11y/label-has-associated-control */
+/* eslint-disable react/no-array-index-key */
+/* eslint-disable react/button-has-type */
+import { useState, useEffect } from 'react';
+import { ExtractorStatus } from 'types/extractor-status';
+import Models from '../consts/models';
 
 declare global {
   interface Window {
@@ -12,54 +18,24 @@ declare global {
 function LocalEmbeddingAPI() {
   const [port, setPort] = useState(3005);
   const [serverStatus, setServerStatus] = useState('Stopped');
-  const [selectedModel, setSelectedModel] = useState('bge-large-en');
 
-  const models = [
-    'bge-large-en',
-    'bge-base-en',
-    'gte-large',
-    'gte-base',
-    'e5-large-v2',
-    'bge-small-en',
-    'instructor-xl',
-    'instructor-large',
-    'e5-base-v2',
-    'multilingual-e5-large',
-    'e5-large',
-    'gte-small',
-    'text-embedding-ada-002',
-    'e5-base',
-    'e5-small-v2',
-    'instructor-base',
-    'sentence-t5-xxl',
-    'multilingual-e5-base',
-    'XLM-3B5-embedding',
-    'gtr-t5-xxl',
-    'SGPT-5.8B-weightedmean-msmarco-specb-bitfit',
-    'e5-small',
-    'gtr-t5-xl',
-    'gtr-t5-large',
-    'XLM-0B6-embedding',
-    'multilingual-e5-small',
-    'sentence-t5-xl',
-    'all-mpnet-base-v2',
-    'sgpt-bloom-7b1-msmarco',
-    'jina-embedding-l-en-v1',
-    'SGPT-2.7B-weightedmean-msmarco-specb-bitfit',
-    'sentence-t5-large',
-    'MegatronBert-1B3-embedding',
-    'all-MiniLM-L12-v2',
-    'all-MiniLM-L6-v2',
-    'jina-embedding-b-en-v1',
-    'SGPT-1.3B-weightedmean-msmarco-specb-bitfit',
-    'gtr-t5-base',
-    'contriever-base-msmarco',
-    // Add more models here if needed
-  ];
+  const [selectedModel, setSelectedModel] = useState(Models[0]);
+
+  const [status, setStatus] = useState<ExtractorStatus | null>(null);
 
   useEffect(() => {
-    window.myAPI.receive('server-status', (message) => {
+    window.myAPI.receive('server-status', (message: string) => {
       setServerStatus(message);
+    });
+
+    window.myAPI.receive('error', (message: string) => {
+      console.log(message);
+    });
+
+    window.myAPI.receive('status', (message: ExtractorStatus) => {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
+      setStatus((status) => ({ ...status, ...message }));
+      console.log(message);
     });
     return () => {};
   }, []);
@@ -68,20 +44,41 @@ function LocalEmbeddingAPI() {
     window.myAPI.send('start-server', { port, selectedModel });
   };
 
+  const handleLoadModel = () => {
+    window.myAPI.send('load-model', { selectedModel });
+  };
+
   const handleStopServer = () => {
-    window.myAPI.send('stop-server');
+    window.myAPI.send('stop-server', null);
   };
 
-  const handlePortChange = (e) => {
+  const handlePortChange = (e: any) => {
     setPort(Number(e.target.value));
-  };
-
-  const handleModelChange = (e) => {
-    setSelectedModel(e.target.value);
   };
 
   return (
     <div className="App">
+      <div>
+        <p className="status-text">Repo: {status?.name}</p>
+        {status?.total && (
+          <p className="status-text">
+            Total: {(status.total * 10 ** -6).toFixed(2)}MB
+          </p>
+        )}
+        <p
+          className="status-text"
+          style={{
+            color: status?.status === 'ready' ? 'green' : undefined,
+          }}
+        >
+          Status:{' '}
+          {status?.status === 'progress' ? (
+            <>progress ({status?.progress.toFixed(2)})</>
+          ) : (
+            status?.status || 'Not Ready'
+          )}
+        </p>
+      </div>
       <div className="label-input">
         <label>
           Port:
@@ -91,9 +88,14 @@ function LocalEmbeddingAPI() {
       <div className="label-input">
         <label>
           Model:
-          <select value={selectedModel} onChange={handleModelChange}>
-            {models.map((model, index) => (
-              <option key={index} value={model}>
+          <select
+            value={selectedModel}
+            onChange={(e) => {
+              setSelectedModel(e.target.value);
+            }}
+          >
+            {Models.map((model) => (
+              <option key={model} value={model}>
                 {model}
               </option>
             ))}
@@ -101,6 +103,7 @@ function LocalEmbeddingAPI() {
         </label>
       </div>
       <div className="button-group">
+        <button onClick={handleLoadModel}>Load Model</button>
         <button onClick={handleStartServer}>Start Server</button>
         <button onClick={handleStopServer}>Stop Server</button>
       </div>
@@ -112,7 +115,5 @@ function LocalEmbeddingAPI() {
 }
 
 export default function App() {
-  return (
-    <LocalEmbeddingAPI />
-  );
+  return <LocalEmbeddingAPI />;
 }

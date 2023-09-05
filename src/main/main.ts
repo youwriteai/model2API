@@ -1,114 +1,182 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
-import { resolveHtmlPath } from './util';
 import express, { Request, Response } from 'express';
 import * as http from 'http';
-import bodyParser from 'body-parser';
+import { platform } from 'os';
+import { pipeline as Pip } from '@xenova/transformers';
+import Models from '../consts/models';
+import MenuBuilder from './menu';
+import { resolveHtmlPath } from './util';
+import type { ExtractorStatus } from '../types/extractor-status';
+import type { AsyncReturnType } from '../types/utils';
 
-let extractor: any; 
-async function initializeExtractor(selectedModel: string) {
-  const TransformersApi = Function('return import("@xenova/transformers")')();
-  const { pipeline } = await TransformersApi;
-  extractor = await pipeline('feature-extraction', selectedModel);
+const isProduction = process.env.NODE_ENV === 'production';
+const isDevelopment =
+  process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+
+// eslint-disable-next-line no-undef
+let extractor: AsyncReturnType<typeof Pip> | null = null;
+let goingModel = '';
+async function initializeExtractor(
+  selectedModel: string,
+  cb?: (data: ExtractorStatus) => void
+) {
+  // eslint-disable-next-line no-new-func
+  const { pipeline }: { pipeline: typeof Pip } = await Function(
+    'return import("@xenova/transformers")'
+  )();
+  extractor = await pipeline('feature-extraction', selectedModel, {
+    progress_callback: cb,
+    quantized: false,
+  });
+  goingModel = selectedModel;
 }
 
-let actualModel: string = "Xenova/all-MiniLM-L12-v2"
+async function unloadExtractor() {
+  if (!extractor) return;
+
+  extractor = null;
+}
+
+let actualModel: string = Models[0];
 initializeExtractor(actualModel);
 
 // Initialize Express
 const expressApp = express();
-expressApp.use(bodyParser.json());
+expressApp.use(express.json());
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function createEmbedding(input: string, _model: string): Promise<any> {
+  const results = await extractor?.(input, {
+    pooling: 'mean',
+    normalize: true,
+  });
+  return results?.data;
+}
+
 // Create a simple "Hello, World!" API endpoint
 expressApp.post('/api/embeddings', async (req: Request, res: Response) => {
-  const { input, model } = req.body;
-
-  if (model && model !== actualModel){
-    actualModel = model
-    await initializeExtractor(actualModel);
-  }
   try {
+    const { input, model } = req.body;
+
+    if (model && model !== actualModel) {
+      actualModel = model;
+      await initializeExtractor(actualModel);
+    }
     if (!extractor) {
-      return res.status(500).json({ error: 'Extractor not initialized'});
+      return res.status(500).json({ error: 'Extractor not initialized' });
     }
 
     let embeddings;
 
     if (Array.isArray(input)) {
-      embeddings = await Promise.all(input.map(singleInput => createEmbedding(singleInput, model)));
+      embeddings = await Promise.all(
+        input.map((singleInput) => createEmbedding(singleInput, model))
+      );
     } else {
       embeddings = await createEmbedding(input, model);
     }
-
 
     const results = {
       model: actualModel,
       usage: {
         prompt_tokens: 8,
-        total_tokens: 8
+        total_tokens: 8,
       },
-      data: Array.isArray(embeddings) ? embeddings.map((embedding, index) => ({
-        object: 'embedding',
-        embedding,
-        index
-      })) : [{
-        object: 'embedding',
-        embedding: embeddings,
-        index: 0
-      }]
+      data: Array.isArray(embeddings)
+        ? embeddings.map((embedding, index) => ({
+            object: 'embedding',
+            embedding,
+            index,
+          }))
+        : [
+            {
+              object: 'embedding',
+              embedding: embeddings,
+              index: 0,
+            },
+          ],
     };
 
     return res.json(results);
-  } catch (error) {
+  } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
 });
 
-async function createEmbedding(input: string, model: string): Promise<any> {
-  const results = await extractor(input, { pooling: 'mean', normalize: true });
-  return results.data;
+let server: http.Server | null = null;
+
+function closeServer() {
+  if (server)
+    return new Promise((resolve) => {
+      server?.close(resolve);
+    });
+  return null;
 }
 
-let server;
-ipcMain.on('start-server', async (event, {port,selectedModel}) => {
-  if (!server) {
-    if (selectedModel !== actualModel){
-      actualModel = selectedModel
-      console.log("Changing to ",selectedModel,"...")
-      await initializeExtractor(actualModel);
-      console.log("ِActual model = ",model)
+let lastStatus: ExtractorStatus | null = null;
+ipcMain.on('load-model', async (event, { selectedModel }) => {
+  try {
+    console.log('Changing to ', selectedModel, '...');
+    await initializeExtractor(selectedModel, (data) => {
+      lastStatus = data;
+      event.reply('status', data);
+    });
+  } catch (err: any) {
+    console.log(err);
+    event.reply('error', err.message);
+  }
+});
+
+ipcMain.on('status', async (event) => {
+  event.reply('status', lastStatus);
+});
+
+ipcMain.on('start-server', async (event, { port, selectedModel }) => {
+  try {
+    if (server) {
+      await closeServer();
     }
     server = http.createServer(expressApp);
     server.listen(port, () => {
       console.log(`Server running on http://localhost:${port}/`);
-      event.reply('server-status', `Server running on http://localhost:${port}/ model: ${actualModel}`);
+      event.reply(
+        'server-status',
+        `Server running on http://localhost:${port}/ model: ${actualModel}`
+      );
     });
+  } catch (err: any) {
+    console.log(err);
+    event.reply('error', err.message);
   }
 });
 
 ipcMain.on('stop-server', (event) => {
-  if (server) {
-    server.close(() => {
-      console.log("Server stopped.");
-      event.reply('server-status', 'Server stopped.');
-      server = null;
-    });
-  }
+  if (!server) return;
+  server.close(() => {
+    console.log('Server stopped.');
+    event.reply('server-status', 'Server stopped.');
+    server = null;
+  });
 });
 
-ipcMain.on('change-port', (event, newPort) => {
-  if (server) {
-    server.close(() => {
-      server = http.createServer(expressApp);
-      server.listen(newPort, () => {
-        console.log(`Server running on http://localhost:${newPort}/`);
-        event.reply('server-status', `Server running on http://localhost:${newPort}/`);
-      });
-    });
-  }
+ipcMain.on('change-port', async (event, newPort) => {
+  if (!server) return;
+  await closeServer();
+  server = http.createServer(expressApp);
+  server.listen(newPort, () => {
+    console.log(`Server running on http://localhost:${newPort}/`);
+    event.reply(
+      'server-status',
+      `Server running on http://localhost:${newPort}/`
+    );
+  });
 });
+
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -125,33 +193,31 @@ ipcMain.on('ipc-example', async (event, arg) => {
   event.reply('ipc-example', msgTemplate('pong'));
 });
 
-if (process.env.NODE_ENV === 'production') {
-  const sourceMapSupport = require('source-map-support');
-  sourceMapSupport.install();
+if (isProduction) {
+  import('source-map-support').then((d) => d.install).catch(console.log);
 }
 
-const isDebug =
-  process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
-
-if (isDebug) {
-  require('electron-debug')();
+if (isDevelopment) {
+  import('electron-debug').then((d) => d.default()).catch(console.log);
 }
 
 const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
+  const installer = await import('electron-devtools-installer');
   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
   const extensions = ['REACT_DEVELOPER_TOOLS'];
 
   return installer
     .default(
-      extensions.map((name) => installer[name]),
+      extensions.map(
+        (name) => installer[name as keyof typeof installer] as any
+      ),
       forceDownload
     )
     .catch(console.log);
 };
 
 const createWindow = async () => {
-  if (isDebug) {
+  if (isDevelopment) {
     await installExtensions();
   }
 
@@ -213,7 +279,7 @@ const createWindow = async () => {
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even
   // after all windows have been closed
-  if (process.platform !== 'darwin') {
+  if (platform() !== 'darwin') {
     app.quit();
   }
 });
@@ -227,5 +293,7 @@ app
       // dock icon is clicked and there are no other windows open.
       if (mainWindow === null) createWindow();
     });
+
+    return null;
   })
   .catch(console.log);
