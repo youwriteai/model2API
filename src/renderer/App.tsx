@@ -1,3 +1,5 @@
+/* eslint-disable no-use-before-define */
+/* eslint-disable react/destructuring-assignment */
 import './App.css';
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -5,7 +7,7 @@ import './App.css';
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable react/no-array-index-key */
 /* eslint-disable react/button-has-type */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { ExtractorStatus } from 'types/extractor-status';
 import clsx from 'clsx';
 import Models from '../consts/models';
@@ -19,85 +21,29 @@ declare global {
   }
 }
 
-interface Service {
-  name: string;
-  status: ExtractorStatus | null;
-  models: {
-    name: string;
-    loaded: boolean;
-  }[];
-}
-
 function LocalEmbeddingAPI() {
   const [port, setPort] = useState(3005);
-  const [serverStatus, setServerStatus] = useState('Stopped');
-
-  const [selectedModel, setSelectedModel] = useState(Models[0]);
-
-  const [availableModels] = useState<Record<string, true>>({});
+  const [serverStatus, setServerStatus] = useState<'Stopped' | 'Running'>(
+    'Stopped'
+  );
 
   const [availableServices, setAvailableServices] = useState<string[]>([]);
-
-  const [services, setServices] = useState<Record<string, Service>>({});
-
-  const servicesArr = useMemo(() => Object.values(services), [services]);
+  const [serverPort, setServerPort] = useState<number>(0);
 
   useEffect(() => {
     window.myAPI.receive('services', (services: string[]) => {
       setAvailableServices(services);
-      setServices(() => {
-        const ss: Record<string, Service> = {};
-        services.forEach((service) => {
-          ss[service] = {
-            status: null,
-            name: service,
-            models: [],
-          };
-        });
-        return ss;
-      });
     });
     window.myAPI.send('services', true);
+
+    window.myAPI.receive('server-status', (message: string, port: number) => {
+      setServerPort(port);
+      setServerStatus(message as any);
+    });
   }, []);
 
-  useEffect(() => {
-    window.myAPI.receive('server-status', (message: string) => {
-      setServerStatus(message);
-    });
-
-    availableServices.forEach((service) => {
-      window.myAPI.receive(`${service}-models`, (models: any) => {
-        setServices((services) => {
-          services[service].models = models;
-          return { ...services };
-        });
-      });
-
-      window.myAPI.send(`${service}-models`, true);
-
-      window.myAPI.receive(`${service}-error`, (message: string) => {
-        console.log(message);
-      });
-
-      window.myAPI.receive(
-        `${service}-status`,
-        (newStatus: ExtractorStatus) => {
-          setServices((services) => {
-            services[service].status = newStatus;
-            return { ...services };
-          });
-        }
-      );
-    });
-    return () => {};
-  }, [availableServices]);
-
   const handleStartServer = () => {
-    window.myAPI.send('start-server', { port, selectedModel });
-  };
-
-  const handleLoadModel = (name: string) => {
-    window.myAPI.send(`${name}-load`, { selectedModel });
+    window.myAPI.send('start-server', { port });
   };
 
   const handleStopServer = () => {
@@ -109,67 +55,139 @@ function LocalEmbeddingAPI() {
   };
 
   return (
-    <div className="App">
-      {servicesArr.map((service) => (
-        <div key={service.name}>
-          <div>{service.name}</div>
-          <div>
-            <p className="status-text">Repo: {service.status?.name}</p>
-            {service.status?.total && (
-              <p className="status-text">
-                Total: {(service.status.total * 10 ** -6).toFixed(2)}MB
-              </p>
+    <div className="App bg-gray-100 select-none flex flex-col md:flex-row w-screen h-screen overflow-hidden">
+      <div className="w-full md:max-w-xs">
+        <div className="stat flex flex-col">
+          <div className="stat-title">API Server</div>
+          <div className="stat-value">{serverStatus}</div>
+          <div className="stat-actions">
+            {serverStatus === 'Running' ? (
+              <button
+                className="btn btn-sm btn-error"
+                onClick={handleStopServer}
+              >
+                Stop Server
+              </button>
+            ) : (
+              <button
+                className="btn btn-sm btn-success"
+                onClick={handleStartServer}
+              >
+                Start Server
+              </button>
             )}
-            <p
-              className={clsx('status-text', {
-                'text-green-300': service.status?.status === 'ready',
-              })}
-            >
-              Status:{' '}
-              {service.status?.status === 'progress' ? (
-                <>progress ({service.status?.progress.toFixed(2)}%)</>
-              ) : (
-                service.status?.status || 'Not Ready'
-              )}
-            </p>
           </div>
+        </div>
+      </div>
+      <div className="w-full overflow-y-auto">
+        {serverStatus === 'Running' && (
+          <div className="flex justify-between items-center md:flex-col px-3 gap-2 w-full">
+            <div className="font-bold text-lg">basePath</div>
+            <div className="select-all">http://localhost:{serverPort}/v1</div>
+          </div>
+        )}
+        <div className="p-2 flex flex-col gap-2 w-full">
+          <div className="w-full text-center text-lg font-bold">Options</div>
           <div className="label-input">
             <label>
-              Model:
-              <select
-                value={selectedModel}
-                onChange={(e) => {
-                  setSelectedModel(e.target.value);
-                }}
-              >
-                {Models.map((model) => (
-                  <option key={model} value={model}>
-                    {model} {availableModels[model] ? '(Loaded)' : ''}
-                  </option>
-                ))}
-              </select>
+              Port:
+              <input type="number" value={port} onChange={handlePortChange} />
             </label>
           </div>
-          <button onClick={() => handleLoadModel(service.name)}>
+        </div>
+        <div className="divider" />
+        <div className="p-2 flex flex-col gap-2 w-full">
+          <div className="w-full text-center text-lg font-bold">Services</div>
+          <div className="p-3 bg-white border-black rounded-md flex flex-col gap-2">
+            {availableServices.map((service) => (
+              <ServiceItem key={service} name={service} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+interface Model {
+  name: string;
+  loaded: boolean;
+}
+function ServiceItem(props: { name: string }) {
+  const [selectedModel, setSelectedModel] = useState(Models[0]);
+
+  const [models, setModels] = useState<Model[]>([]);
+  const [status, setStatus] = useState<ExtractorStatus | null>(null);
+
+  const handleLoadModel = () => {
+    window.myAPI.send(`${props.name}-load`, { selectedModel });
+  };
+
+  useEffect(() => {
+    window.myAPI.receive(
+      `${props.name}-models`,
+      (options: { models: Model[] }) => {
+        setModels(options.models);
+      }
+    );
+
+    window.myAPI.send(`${props.name}-models`, true);
+
+    window.myAPI.receive(`${props.name}-error`, (message: string) => {
+      console.log(message);
+    });
+
+    window.myAPI.receive(
+      `${props.name}-status`,
+      (newStatus: ExtractorStatus) => {
+        setStatus((status) => ({ ...status, ...newStatus }));
+      }
+    );
+    return () => {};
+  }, []);
+
+  return (
+    <div className="card w-full bg-base-100 shadow-xl">
+      <div className="card-body">
+        <h2 className="card-title">{props.name}</h2>
+        <label>
+          Model:
+          <select
+            value={selectedModel}
+            onChange={(e) => {
+              setSelectedModel(e.target.value);
+            }}
+          >
+            {models?.map((model) => (
+              <option key={model.name} value={model.name}>
+                {model.name} {model.loaded ? '(Loaded)' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div>
+          <p className="status-text">Repo: {status?.name}</p>
+          {status?.total && (
+            <p className="status-text">
+              Total: {(status.total * 10 ** -6).toFixed(2)}MB
+            </p>
+          )}
+          <p
+            className={clsx('status-text', {
+              'text-green-300': status?.status === 'ready',
+            })}
+          >
+            Status:{' '}
+            {status?.status === 'progress' ? (
+              <>progress ({status?.progress.toFixed(2)}%)</>
+            ) : (
+              status?.status || 'Not Ready'
+            )}
+          </p>
+        </div>
+        <div className="card-actions justify-end">
+          <button className="btn btn-primary" onClick={handleLoadModel}>
             Load Model
           </button>
-        </div>
-      ))}
-
-      <div>
-        <div>Server</div>
-        <div className="label-input">
-          <label>
-            Port:
-            <input type="number" value={port} onChange={handlePortChange} />
-          </label>
-        </div>
-        <div className="button-group">
-          <button onClick={handleStartServer}>Start Server</button>
-          <button onClick={handleStopServer}>Stop Server</button>
-        </div>
-        <div>
-          <p className="status-text">Server Status: {serverStatus}</p>
         </div>
       </div>
     </div>
