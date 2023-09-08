@@ -80,6 +80,8 @@ import { getConfig } from './utils';
       }
     });
 
+    ipcMain.setMaxListeners(200);
+
     ipcMain.on('stop-server', async (event) => {
       await closeServer();
       console.log('Server stopped.');

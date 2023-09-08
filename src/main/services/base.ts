@@ -26,20 +26,20 @@ export default class ServiceBase implements ServiceInterface {
       try {
         await this.load(options, (data) => {
           this.lastStatus = data;
-          event.reply(`${this.serviceName}-status`, data);
+          this.sendStatus(data);
         });
       } catch (err: any) {
         console.log(err);
-        event.reply('error', err.message);
+        this.sendError(err.message);
       }
     });
 
-    this.ipc?.on(`${this.serviceName}-status`, async () => {
-      this.sendStatus(await this.getStatus());
+    this.ipc?.on(`${this.serviceName}-status`, async (e) => {
+      e.reply?.(await this.getStatus());
     });
 
-    this.ipc?.on(`${this.serviceName}-models`, async (event) => {
-      event.reply(`${this.serviceName}-models`, await this.getModels());
+    this.ipc?.on(`${this.serviceName}-models`, async (e) => {
+      e.reply?.(`${this.serviceName}-models`, await this.getModels());
     });
   }
 
@@ -51,7 +51,15 @@ export default class ServiceBase implements ServiceInterface {
   }
 
   protected sendStatus(stats: any) {
-    this.ipc?.emit(`${this.serviceName}-models`, stats);
+    this.ipc?.once(`${this.serviceName}-ping`, (e) =>
+      e.reply(`${this.serviceName}-status`, stats)
+    );
+  }
+
+  protected sendError(error: any) {
+    this.ipc?.once(`${this.serviceName}-ping`, (e) =>
+      e.reply(`${this.serviceName}-error`, error)
+    );
   }
 
   async getModels() {

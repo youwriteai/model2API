@@ -9,3 +9,4 @@ declare module 'audio-decode' {
 
 declare module 'qoa-format';
 declare module 'audio-type';
+declare module 'mime-types';

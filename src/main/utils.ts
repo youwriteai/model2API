@@ -1,3 +1,4 @@
+/* eslint-disable import/no-cycle */
 /* eslint-disable new-cap */
 /* eslint-disable no-use-before-define */
 /* eslint-disable import/first */
@@ -9,10 +10,15 @@
 /* eslint-disable no-restricted-syntax */
 
 import fs from 'fs/promises';
+import fss from 'fs';
 import path from 'path';
 import { WaveFile } from 'wavefile';
+import mime from 'mime-types';
+
+// import { OggOpusDecoder } from 'ogg-opus-decoder';
 import audioType from '../libs/audio-type';
 import Models from '../consts/models';
+import decodeAudio from '../libs/ffmpeg/decoder';
 
 export const isProduction = process.env.NODE_ENV === 'production';
 export const isDevelopment =
@@ -23,6 +29,14 @@ const exePath = process.argv[0];
 const homePath = isDevelopment
   ? path.join(process.cwd(), './release/app/dist')
   : path.join(exePath, '..');
+
+export const tempPath = path.join(homePath, './temp');
+
+try {
+  fss.statSync(tempPath);
+} catch {
+  fss.mkdirSync(tempPath);
+}
 
 export const modelsDir = path.join(homePath, './models');
 
@@ -92,9 +106,11 @@ export async function getAvailableModels() {
 }
 
 export async function convertAudioToSample(
-  buffer: Buffer
+  buffer: Buffer,
+  mimeType: string
 ): Promise<Float32Array | Float64Array> {
-  switch (audioType(buffer)) {
+  console.log('type', mimeType, audioType(buffer));
+  switch (mime.extension(mimeType)) {
     case 'wav': {
       const wav = new WaveFile(buffer);
       wav.toBitDepth('32f'); // Pipeline expects input as a Float32Array
@@ -116,9 +132,8 @@ export async function convertAudioToSample(
       }
       return audioData;
     }
-
     default:
-      return new Float32Array();
+      return (await decodeAudio(buffer, mimeType)) || new Float64Array();
     // return (await audioDecode(buffer)).getChannelData(0);
   }
 }

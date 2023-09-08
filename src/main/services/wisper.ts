@@ -105,7 +105,7 @@ export default class WisperService
 
         let result = '';
         if (data && buff) {
-          const audioData = await convertAudioToSample(buff);
+          const audioData = await convertAudioToSample(buff, data.mimetype);
           result = await this.transcript(audioData);
         }
 

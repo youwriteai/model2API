@@ -134,6 +134,10 @@ function ServiceItem(props: { name: string }) {
 
     window.myAPI.send(`${props.name}-models`, true);
 
+    const pingIntr = setInterval(() => {
+      window.myAPI.send(`${props.name}-ping`, true);
+    }, 500);
+
     window.myAPI.receive(`${props.name}-error`, (message: string) => {
       console.log(message);
     });
@@ -144,7 +148,9 @@ function ServiceItem(props: { name: string }) {
         setStatus((status) => ({ ...status, ...newStatus }));
       }
     );
-    return () => {};
+    return () => {
+      clearInterval(pingIntr);
+    };
   }, []);
 
   return (
