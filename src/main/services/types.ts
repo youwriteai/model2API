@@ -5,4 +5,8 @@ export default interface ServiceInterface {
 
   setupIpc(): Promise<void>;
   setupServer(app: ReturnType<typeof fastify>): Promise<void>;
+  load(
+    props: { selectedModel: string },
+    cb: (progress: any) => void
+  ): Promise<void>;
 }

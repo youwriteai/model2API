@@ -8,15 +8,31 @@ import { IpcMain } from 'electron';
 import fastify from 'fastify';
 import { AsyncReturnType } from 'types/utils';
 import { pipeline as Pip } from '@xenova/transformers';
-import { getAvailableModels, modelsDir } from '../utils';
-import Models from '../../consts/models';
+import fastifyMultipart from '@fastify/multipart';
+import { convertAudioToSample, getAvailableModels, modelsDir } from '../utils';
 import ServiceInterface from './types';
-import type ServicesSafe from '.';
 import ServiceBase from './base';
+import type ServicesSafe from '.';
 
-const serviceName = 'embeddings';
+const Models = [
+  'Xenova/whisper-tiny.en',
+  'Xenova/whisper-tiny',
+  'Xenova/whisper-small.en',
+  'Xenova/whisper-small',
+  'Xenova/whisper-base.en',
+  'Xenova/whisper-base',
+  'Xenova/whisper-medium.en',
+  'Xenova/whisper-large',
+  'Xenova/whisper-large-v2',
+  'Xenova/nb-whisper-tiny-beta',
+  'Xenova/nb-whisper-small-beta',
+  'Xenova/nb-whisper-base-beta',
+  'Xenova/nb-whisper-medium-beta',
+];
 
-export default class EmbeddingsService
+const serviceName = 'wisper';
+
+export default class WisperService
   extends ServiceBase
   implements ServiceInterface
 {
@@ -38,11 +54,15 @@ export default class EmbeddingsService
     const { pipeline }: { pipeline: typeof Pip } = await Function(
       'return import("@xenova/transformers")'
     )();
-    this.extractor = await pipeline('feature-extraction', props.selectedModel, {
-      progress_callback: cb,
-      // quantized: false,
-      cache_dir: modelsDir,
-    });
+    this.extractor = await pipeline(
+      'automatic-speech-recognition',
+      props.selectedModel,
+      {
+        progress_callback: cb,
+        // quantized: false,
+        cache_dir: modelsDir,
+      }
+    );
   }
 
   async getModels() {
@@ -56,10 +76,12 @@ export default class EmbeddingsService
   }
 
   async setupServer(app: ReturnType<typeof fastify>) {
-    app.post('/api/embeddings', async (req, reply) => {
+    await app.register(fastifyMultipart, {});
+
+    app.post('/audio/transcriptions', async (req, reply) => {
       try {
         // @ts-ignore
-        const { input, model } = (await req.body()) as any;
+        const model = undefined as any;
 
         if (model && model !== this.actualModel) {
           this.actualModel = Models.includes(model) ? model : Models[0];
@@ -69,40 +91,29 @@ export default class EmbeddingsService
           return reply.status(500).send({ error: 'Extractor not initialized' });
         }
 
-        const results = {
-          model: this.actualModel,
-          usage: {
-            prompt_tokens: 8,
-            total_tokens: 8,
-          },
-          data: (
-            await Promise.all(
-              Array.isArray(input)
-                ? input.map((singleInput) => this.createEmbedding(singleInput))
-                : [this.createEmbedding(input)]
-            )
-          ).map((embedding: any, index: any) => ({
-            object: 'embedding',
-            embedding,
-            index,
-          })),
-        };
+        const data = await req.file();
+        const buff = await data?.toBuffer();
 
-        return reply.send(results);
+        let result = '';
+        if (data && buff) {
+          const audioData = await convertAudioToSample(buff);
+          result = await this.transcript(audioData);
+        }
+
+        return reply.send({
+          text: result,
+        });
       } catch (error: any) {
         return reply.status(500).send({ error: error.message });
       }
     });
-    app.get('/api/embeddings/models', (req, reply) => {
+    app.get('/audio/transcriptions/models', (req, reply) => {
       reply.send({ models: Models });
     });
   }
 
-  async createEmbedding(input: string): Promise<any> {
-    const results = await this.extractor?.(input, {
-      pooling: 'mean',
-      normalize: true,
-    });
-    return results?.data;
+  async transcript(input: Float32Array | Float64Array): Promise<string> {
+    const results = await this.extractor?.(input);
+    return results?.text;
   }
 }

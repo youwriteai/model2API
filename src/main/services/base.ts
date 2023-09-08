@@ -5,14 +5,21 @@ import fastify from 'fastify';
 import { getAvailableModels } from '../utils';
 import Models from '../../consts/models';
 import ServiceInterface from './types';
+import type ServicesSafe from '.';
 
 const serviceName = 'default';
 export default class ServiceBase implements ServiceInterface {
   serviceName: string = serviceName;
 
+  safe: ServicesSafe;
+
   ipc: IpcMain | undefined;
 
   lastStatus: any;
+
+  constructor(safe: any) {
+    this.safe = safe;
+  }
 
   async setupIpc(): Promise<void> {
     this.ipc?.on(`${this.serviceName}-load`, async (event, options) => {
