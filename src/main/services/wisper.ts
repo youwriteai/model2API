@@ -13,6 +13,7 @@ import { convertAudioToSample, getAvailableModels, modelsDir } from '../utils';
 import ServiceInterface from './types';
 import ServiceBase from './base';
 import type ServicesSafe from '.';
+import audioType from '../../libs/audio-type';
 
 const Models = [
   'Xenova/whisper-tiny.en',
@@ -76,7 +77,10 @@ export default class WisperService
   }
 
   async setupServer(app: ReturnType<typeof fastify>) {
-    await app.register(fastifyMultipart, {});
+    await app.register(fastifyMultipart, {
+      prefix: '/audio/transcriptions',
+      throwFileSizeLimit: false,
+    });
 
     app.post('/audio/transcriptions', async (req, reply) => {
       try {
@@ -97,8 +101,11 @@ export default class WisperService
         let result = '';
         if (data && buff) {
           const audioData = await convertAudioToSample(buff);
+          console.log(audioData, audioType(buff));
           result = await this.transcript(audioData);
         }
+
+        console.log({ result });
 
         return reply.send({
           text: result,
@@ -114,6 +121,7 @@ export default class WisperService
 
   async transcript(input: Float32Array | Float64Array): Promise<string> {
     const results = await this.extractor?.(input);
+    console.log(results);
     return results?.text;
   }
 }
