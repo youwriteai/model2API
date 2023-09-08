@@ -123,7 +123,6 @@ export default class WisperService
 
   async transcript(input: Float32Array | Float64Array): Promise<string> {
     const results = await this.extractor?.(input);
-    console.log(results);
     return results?.text;
   }
 }

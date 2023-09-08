@@ -16,7 +16,6 @@ import { WaveFile } from 'wavefile';
 import mime from 'mime-types';
 
 // import { OggOpusDecoder } from 'ogg-opus-decoder';
-import audioType from '../libs/audio-type';
 import Models from '../consts/models';
 import decodeAudio from '../libs/ffmpeg/decoder';
 
@@ -109,7 +108,6 @@ export async function convertAudioToSample(
   buffer: Buffer,
   mimeType: string
 ): Promise<Float32Array | Float64Array> {
-  console.log('type', mimeType, audioType(buffer));
   switch (mime.extension(mimeType)) {
     case 'wav': {
       const wav = new WaveFile(buffer);

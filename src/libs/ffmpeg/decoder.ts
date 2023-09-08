@@ -48,7 +48,6 @@ export default async function decodeAudio(data: Buffer, mimeType: string) {
     wav.toBitDepth('32f'); // Pipeline expects input as a Float32Array
     wav.toSampleRate(16000); // Whisper expects audio with a sampling rate of 16000
     let audioData = wav.getSamples();
-    console.log(audioData);
     if (audioData && Array.isArray(audioData)) {
       if (audioData.length > 1) {
         const SCALING_FACTOR = Math.sqrt(2);
