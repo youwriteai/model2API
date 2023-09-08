@@ -34,8 +34,8 @@ export default class ServiceBase implements ServiceInterface {
       }
     });
 
-    this.ipc?.on(`${this.serviceName}-status`, async (event) => {
-      event.reply(`${this.serviceName}-status`, await this.getStatus());
+    this.ipc?.on(`${this.serviceName}-status`, async () => {
+      this.sendStatus(await this.getStatus());
     });
 
     this.ipc?.on(`${this.serviceName}-models`, async (event) => {
@@ -48,6 +48,10 @@ export default class ServiceBase implements ServiceInterface {
     throw new Error(
       `Method setupServer not implemented. in service ${this.serviceName}`
     );
+  }
+
+  protected sendStatus(stats: any) {
+    this.ipc?.emit(`${this.serviceName}-models`, stats);
   }
 
   async getModels() {

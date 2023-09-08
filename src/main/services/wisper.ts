@@ -13,7 +13,6 @@ import { convertAudioToSample, getAvailableModels, modelsDir } from '../utils';
 import ServiceInterface from './types';
 import ServiceBase from './base';
 import type ServicesSafe from '.';
-import audioType from '../../libs/audio-type';
 
 const Models = [
   'Xenova/whisper-tiny.en',
@@ -89,11 +88,17 @@ export default class WisperService
 
         if (model && model !== this.actualModel) {
           this.actualModel = Models.includes(model) ? model : Models[0];
-          await this.load({ selectedModel: this.actualModel }, console.log);
+          await this.load(
+            { selectedModel: this.actualModel },
+            this.sendStatus.bind(this)
+          );
         }
-        if (!this.extractor) {
-          return reply.status(500).send({ error: 'Extractor not initialized' });
-        }
+
+        if (!this.extractor)
+          await this.load(
+            { selectedModel: this.actualModel },
+            this.sendStatus.bind(this)
+          );
 
         const data = await req.file();
         const buff = await data?.toBuffer();
@@ -101,11 +106,8 @@ export default class WisperService
         let result = '';
         if (data && buff) {
           const audioData = await convertAudioToSample(buff);
-          console.log(audioData, audioType(buff));
           result = await this.transcript(audioData);
         }
-
-        console.log({ result });
 
         return reply.send({
           text: result,

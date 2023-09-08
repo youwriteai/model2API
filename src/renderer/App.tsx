@@ -10,7 +10,6 @@ import './App.css';
 import { useState, useEffect } from 'react';
 import { ExtractorStatus } from 'types/extractor-status';
 import clsx from 'clsx';
-import Models from '../consts/models';
 
 declare global {
   interface Window {
@@ -53,6 +52,10 @@ function LocalEmbeddingAPI() {
   const handlePortChange = (e: any) => {
     setPort(Number(e.target.value));
   };
+
+  useEffect(() => {
+    handleStartServer();
+  }, []);
 
   return (
     <div className="App bg-gray-100 select-none flex flex-col md:flex-row w-screen h-screen overflow-hidden">
@@ -113,9 +116,8 @@ interface Model {
   loaded: boolean;
 }
 function ServiceItem(props: { name: string }) {
-  const [selectedModel, setSelectedModel] = useState(Models[0]);
-
   const [models, setModels] = useState<Model[]>([]);
+  const [selectedModel, setSelectedModel] = useState(models[0]?.name);
   const [status, setStatus] = useState<ExtractorStatus | null>(null);
 
   const handleLoadModel = () => {
