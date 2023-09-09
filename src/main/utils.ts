@@ -17,7 +17,7 @@ import mime from 'mime-types';
 
 // import { OggOpusDecoder } from 'ogg-opus-decoder';
 import Models from '../consts/models';
-import decodeAudio from '../libs/ffmpeg/decoder';
+import ffmpegDecoder from '../libs/ffmpeg/decoder';
 
 export const isProduction = process.env.NODE_ENV === 'production';
 export const isDevelopment =
@@ -132,7 +132,10 @@ export async function convertAudioToSample(
       return audioData;
     }
     default:
-      return (await decodeAudio(buffer, mimeType)) || new Float64Array();
+      return (
+        (await ffmpegDecoder.decodeAudio(buffer, mimeType)) ||
+        new Float64Array()
+      );
     // return (await audioDecode(buffer)).getChannelData(0);
   }
 }
