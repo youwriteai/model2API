@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable import/no-cycle */
 /* eslint-disable new-cap */
 /* eslint-disable no-use-before-define */
@@ -106,17 +107,21 @@ export async function saveConfig(newConf: Partial<DefaultSettings>) {
 // eslint-disable-next-line import/prefer-default-export
 export async function getAvailableModels() {
   const folderPaths: Record<string, true> = {};
-  const absoluteRootDir = path.resolve(modelsDir); // Ensure we have an absolute path
+  try {
+    const absoluteRootDir = path.resolve(modelsDir); // Ensure we have an absolute path
 
-  const items = await fs.readdir(absoluteRootDir);
+    const items = await fs.readdir(absoluteRootDir);
 
-  for (const item of items) {
-    const itemsPath = path.join(absoluteRootDir, item);
-    const items2 = await fs.readdir(itemsPath);
+    for (const item of items) {
+      const itemsPath = path.join(absoluteRootDir, item);
+      const items2 = await fs.readdir(itemsPath);
 
-    for (const item2 of items2) {
-      folderPaths[`${item}/${item2}`] = true;
+      for (const item2 of items2) {
+        folderPaths[`${item}/${item2}`] = true;
+      }
     }
+  } catch {
+    console.log('nothing here');
   }
 
   return folderPaths;
@@ -155,4 +160,29 @@ export async function convertAudioToSample(
       );
     // return (await audioDecode(buffer)).getChannelData(0);
   }
+}
+
+const { platform } = process;
+
+export async function tryGussingFfmpegLoc() {
+  const listofPossiblePaths: string[] = [];
+
+  if (platform === 'win32') {
+    const paths = process.env.path.split(';');
+    paths.forEach((p) => {
+      if (
+        p.toLowerCase().includes(`ffmpeg`) &&
+        p.toLowerCase().includes(`bin`)
+      ) {
+        listofPossiblePaths.push(path.join(p, './ffmpeg.exe'));
+      }
+    });
+  } else {
+    const { default: ffmpegPath } = await import('@ffmpeg-installer/ffmpeg');
+    listofPossiblePaths.push(
+      ffmpegPath.path?.replace('app.asar', 'app.asar.unpacked') ||
+        `/usr/bin/ffmpeg`
+    );
+  }
+  return listofPossiblePaths[0];
 }

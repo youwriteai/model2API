@@ -13,7 +13,13 @@ import path from 'path';
 import mime from 'mime-types';
 import { randomUUID } from 'crypto';
 import { WaveFile } from 'wavefile';
-import { defaultSettings, tempPath } from '../../main/utils';
+import type { FfmpegCommand } from 'fluent-ffmpeg';
+import {
+  getConfig,
+  saveConfig,
+  tempPath,
+  tryGussingFfmpegLoc,
+} from '../../main/utils';
 
 function runFfmpegSync<T>(command: T): Promise<T> {
   return new Promise((s, r) => {
@@ -22,102 +28,109 @@ function runFfmpegSync<T>(command: T): Promise<T> {
   });
 }
 
-const ffmpegDecoder: any = {
-  decodeAudio: async (d: Buffer, m: string) => {
-    const { default: ffmpeg } = await import('fluent-ffmpeg');
-    const { default: ffmpegPath } = await import('@ffmpeg-installer/ffmpeg');
+const ffmpegDecoder: {
+  decodeAudio: any;
+  ffmpeg?: FfmpegCommand;
+  ffmpegPth: string;
+} = {
+  ffmpegPth: '',
+  async decodeAudio(data: Buffer, mimeType: string) {
+    if (!this.ffmpeg) {
+      this.ffmpeg = (await import('fluent-ffmpeg')).default;
 
-    ffmpegDecoder.decodeAudio = async (
-      data: Buffer = d,
-      mimeType: string = m
-    ) => {
-      ffmpeg.setFfmpegPath(defaultSettings.ffmpegPath || ffmpegPath.path);
-      const command = ffmpeg({});
-      const ext = mime.extension(mimeType);
-      const tempFilePathOld = path.join(tempPath, `${randomUUID()}.old.${ext}`);
-      const tempFilePath = path.join(tempPath, `${randomUUID()}.wav`);
-      try {
-        await fs.writeFile(tempFilePathOld, data);
+      this.pth =
+        (await getConfig()).ffmpegPath || (await tryGussingFfmpegLoc());
 
-        await runFfmpegSync(
-          command
-            .input(tempFilePathOld)
-            // .setStartTime(0)
-            // .audioCodec('pcm_s16le')
-            // .fromFormat(mimeType)
-            .format('wav')
-            .save(tempFilePath)
-        );
+      await saveConfig({
+        ffmpegPath: this.pth,
+      });
+    }
 
-        const newFileContent = await fs.readFile(tempFilePath);
-        const wav = new WaveFile(newFileContent);
-        wav.toBitDepth('32f'); // Pipeline expects input as a Float32Array
-        wav.toSampleRate(16000); // Whisper expects audio with a sampling rate of 16000
-        let audioData = wav.getSamples();
-        if (audioData && Array.isArray(audioData)) {
-          if (audioData.length > 1) {
-            const SCALING_FACTOR = Math.sqrt(2);
+    process.stdout.write(`ffmpeg loc ${this.pth}`);
+    this.ffmpeg.setFfmpegPath(this.pth);
+    const command = this.ffmpeg({});
+    const ext = mime.extension(mimeType);
+    const tempFilePathOld = path.join(tempPath, `${randomUUID()}.old.${ext}`);
+    const tempFilePath = path.join(tempPath, `${randomUUID()}.wav`);
+    try {
+      await fs.writeFile(tempFilePathOld, data);
 
-            // Merge channels (into first channel to save memory)
-            for (let i = 0; i < audioData[0].length; ++i) {
-              audioData[0][i] =
-                (SCALING_FACTOR * (audioData[0][i] + audioData[1][i])) / 2;
-            }
+      await runFfmpegSync(
+        command
+          .input(tempFilePathOld)
+          // .setStartTime(0)
+          // .audioCodec('pcm_s16le')
+          // .fromFormat(mimeType)
+          .format('wav')
+          .save(tempFilePath)
+      );
+
+      const newFileContent = await fs.readFile(tempFilePath);
+      const wav = new WaveFile(newFileContent);
+      wav.toBitDepth('32f'); // Pipeline expects input as a Float32Array
+      wav.toSampleRate(16000); // Whisper expects audio with a sampling rate of 16000
+      let audioData = wav.getSamples();
+      if (audioData && Array.isArray(audioData)) {
+        if (audioData.length > 1) {
+          const SCALING_FACTOR = Math.sqrt(2);
+
+          // Merge channels (into first channel to save memory)
+          for (let i = 0; i < audioData[0].length; ++i) {
+            audioData[0][i] =
+              (SCALING_FACTOR * (audioData[0][i] + audioData[1][i])) / 2;
           }
-          // Select first channel
-          audioData = audioData[0];
         }
-
-        return audioData;
-
-        // const child = execFile(
-        //   'ffmpeg',
-        //   [
-        //     '-i',
-        //     tempFile,
-        //     '-ss',
-        //     start,
-        //     '-t',
-        //     duration,
-        //     '-f',
-        //     'wav',
-        //     '-acodec',
-        //     'pcm_s32le',
-        //     'pipe:1',
-        //   ],
-        //   { encoding: 'buffer', maxBuffer: 10 * 1024 * 1024 },
-        //   (err: any, result: any, stderr: any) => {
-        //     if (err) return cb(err);
-        //     context.decodeAudioData(
-        //       new Uint8Array(result).buffer,
-        //       function (result) {
-        //         cb(null, result);
-        //       },
-        //       function (err) {
-        //         cb(err || new Error('Decode error'));
-        //       }
-        //     );
-        //   }
-        // );
-        // child.stdin.end();
-      } catch (err: any) {
-        console.log('Error here ?', err);
-      } finally {
-        await new Promise((s) => setTimeout(s, 500));
-        try {
-          fs.rm(tempFilePathOld);
-        } catch {
-          console.log("couldn't delete templFilePathOld");
-        }
-        try {
-          fs.rm(tempFilePath);
-        } catch {
-          console.log("couldn't delete templFilePath");
-        }
+        // Select first channel
+        audioData = audioData[0];
       }
-    };
 
-    return ffmpegDecoder.decodeAudio(d, m) as Float64Array;
+      return audioData;
+
+      // const child = execFile(
+      //   'ffmpeg',
+      //   [
+      //     '-i',
+      //     tempFile,
+      //     '-ss',
+      //     start,
+      //     '-t',
+      //     duration,
+      //     '-f',
+      //     'wav',
+      //     '-acodec',
+      //     'pcm_s32le',
+      //     'pipe:1',
+      //   ],
+      //   { encoding: 'buffer', maxBuffer: 10 * 1024 * 1024 },
+      //   (err: any, result: any, stderr: any) => {
+      //     if (err) return cb(err);
+      //     context.decodeAudioData(
+      //       new Uint8Array(result).buffer,
+      //       function (result) {
+      //         cb(null, result);
+      //       },
+      //       function (err) {
+      //         cb(err || new Error('Decode error'));
+      //       }
+      //     );
+      //   }
+      // );
+      // child.stdin.end();
+    } catch (err: any) {
+      console.log('Error here ?', err);
+    } finally {
+      await new Promise((s) => setTimeout(s, 500));
+      try {
+        fs.rm(tempFilePathOld);
+      } catch {
+        console.log("couldn't delete templFilePathOld");
+      }
+      try {
+        fs.rm(tempFilePath);
+      } catch {
+        console.log("couldn't delete templFilePath");
+      }
+    }
   },
 };
 export default ffmpegDecoder;

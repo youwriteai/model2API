@@ -128,6 +128,7 @@ function ServiceItem(props: { name: string }) {
     window.myAPI.receive(
       `${props.name}-models`,
       (options: { models: Model[] }) => {
+        console.log({ models });
         setModels(options.models);
       }
     );
