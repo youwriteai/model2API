@@ -10,9 +10,11 @@
 <br>
 
 <div align="center">
+  
 [![Build Status][github-actions-status]][github-actions-url]
 [![Github Tag][github-tag-image]][github-tag-url]
-[![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/Fjy3vfgy5q)
+[![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/J3EgnAqnnQ)
+
 </div>
 
 ## Install
@@ -52,3 +54,10 @@ Join our Discord: https://discord.gg/J3EgnAqnnQ
 
 - [Haouari Nourdine](https://github.com/nhaouari)
 - [Haouari Haitam](https://github.com/haouarihk)
+
+
+
+[github-actions-status]: https://github.com/youwriteai/Ai2api/workflows/Test/badge.svg
+[github-actions-url]: https://github.com/youwriteai/Ai2api/actions
+[github-tag-image]: https://img.shields.io/github/tag/youwriteai/Ai2api.svg?label=version
+[github-tag-url]: https://github.com/youwriteai/Ai2api/releases/latest
