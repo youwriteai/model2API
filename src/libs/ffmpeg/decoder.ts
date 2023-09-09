@@ -115,9 +115,9 @@ const ffmpegDecoder: any = {
           console.log("couldn't delete templFilePath");
         }
       }
-    }
+    };
 
-    return ffmpegDecoder.decodeAudio(d,m) as Float64Array;
+    return ffmpegDecoder.decodeAudio(d, m) as Float64Array;
   },
 };
 export default ffmpegDecoder;

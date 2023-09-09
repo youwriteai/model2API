@@ -2,7 +2,7 @@
 /* eslint-disable no-use-before-define */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-console */
-import type { BrowserWindow } from "electron";
+import type { BrowserWindow } from 'electron';
 
 try {
   (async () => {
