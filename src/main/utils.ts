@@ -168,7 +168,7 @@ export async function tryGussingFfmpegLoc() {
   const listofPossiblePaths: string[] = [];
 
   if (platform === 'win32') {
-    const paths = process.env.path.split(';');
+    const paths = (process.env.path || '')?.split(';');
     paths.forEach((p) => {
       if (
         p.toLowerCase().includes(`ffmpeg`) &&
