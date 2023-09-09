@@ -86,6 +86,23 @@ export async function getConfig() {
   }
 }
 
+export async function saveConfig(newConf: Partial<DefaultSettings>) {
+  const oldConf = await getConfig();
+
+  await fs.writeFile(
+    configPath,
+    JSON.stringify(
+      {
+        ...oldConf,
+        ...newConf,
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
+}
+
 // eslint-disable-next-line import/prefer-default-export
 export async function getAvailableModels() {
   const folderPaths: Record<string, true> = {};

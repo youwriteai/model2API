@@ -8,17 +8,16 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable prefer-destructuring */
 /* eslint-disable func-names */
-import type ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs/promises';
 import path from 'path';
 import mime from 'mime-types';
 import { randomUUID } from 'crypto';
 import { WaveFile } from 'wavefile';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { defaultSettings, tempPath } from '../../main/utils';
 
-function runFfmpegSync(command: ffmpeg.FfmpegCommand) {
+function runFfmpegSync<T>(command: T): Promise<T> {
   return new Promise((s, r) => {
+    // @ts-ignore
     command.on('end', s).on('error', r);
   });
 }
@@ -26,6 +25,7 @@ function runFfmpegSync(command: ffmpeg.FfmpegCommand) {
 const ffmpegDecoder: any = {
   decodeAudio: async (d: Buffer, m: string) => {
     const { default: ffmpeg } = await import('fluent-ffmpeg');
+    const { default: ffmpegPath } = await import('@ffmpeg-installer/ffmpeg');
 
     ffmpegDecoder.decodeAudio = async (
       data: Buffer = d,

@@ -1,8 +1,9 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-use-before-define */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+// /* eslint-disable prefer-const */
+// /* eslint-disable no-use-before-define */
+// /* eslint-disable @typescript-eslint/no-unused-vars */
+// /* eslint-disable no-console */
 import type { BrowserWindow } from 'electron';
+import { saveConfig } from './utils';
 
 try {
   (async () => {
@@ -70,13 +71,27 @@ try {
     }
 
     services.setupIpc(ipcMain);
-    let mainWindow: BrowserWindow | null = null;
+    const mainWindow: BrowserWindow | null = null;
 
     if (settings.gui) {
       ipcMain.on('start-server', async (event, { port }) => {
         try {
           await startServer(port);
-          event.reply('server-status', `Running`, port);
+
+          event.reply('server-status', `Running`, (settings.port = port));
+
+          await saveConfig({
+            port,
+          });
+        } catch (err: any) {
+          console.log(err);
+          event.reply('error', err.message);
+        }
+      });
+
+      ipcMain.on('default-settings', async (event) => {
+        try {
+          event.reply('default-settings', settings.port);
         } catch (err: any) {
           console.log(err);
           event.reply('error', err.message);
@@ -113,3 +128,5 @@ try {
 } catch (err: any) {
   process.stdout.write(err.message || err);
 }
+
+// process.stdout.write(`\n${tempPath}\n${modelsDir}`);
