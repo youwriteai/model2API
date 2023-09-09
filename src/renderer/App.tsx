@@ -42,7 +42,7 @@ function LocalEmbeddingAPI() {
   }, []);
 
   const handleStartServer = () => {
-    window.myAPI.send('start-server', { port });
+    window.myAPI?.send('start-server', { port });
   };
 
   const handleStopServer = () => {
