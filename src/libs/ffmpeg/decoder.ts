@@ -13,7 +13,7 @@ import path from 'path';
 import mime from 'mime-types';
 import { randomUUID } from 'crypto';
 import { WaveFile } from 'wavefile';
-import type { FfmpegCommand } from 'fluent-ffmpeg';
+import type ff from 'fluent-ffmpeg';
 import {
   getConfig,
   saveConfig,
@@ -30,7 +30,7 @@ function runFfmpegSync<T>(command: T): Promise<T> {
 
 const ffmpegDecoder: {
   decodeAudio: any;
-  ffmpeg?: FfmpegCommand;
+  ffmpeg?: typeof ff;
   ffmpegPth: string;
 } = {
   ffmpegPth: '',
@@ -38,17 +38,17 @@ const ffmpegDecoder: {
     if (!this.ffmpeg) {
       this.ffmpeg = (await import('fluent-ffmpeg')).default;
 
-      this.pth =
+      this.ffmpegPth =
         (await getConfig()).ffmpegPath || (await tryGussingFfmpegLoc());
 
       await saveConfig({
-        ffmpegPath: this.pth,
+        ffmpegPath: this.ffmpegPth,
       });
     }
 
-    process.stdout.write(`ffmpeg loc ${this.pth}`);
-    this.ffmpeg.setFfmpegPath(this.pth);
-    const command = this.ffmpeg({});
+    process.stdout.write(`ffmpeg loc ${this.ffmpegPth}`);
+    this.ffmpeg?.setFfmpegPath(this.ffmpegPth);
+    const command = this.ffmpeg?.({});
     const ext = mime.extension(mimeType);
     const tempFilePathOld = path.join(tempPath, `${randomUUID()}.old.${ext}`);
     const tempFilePath = path.join(tempPath, `${randomUUID()}.wav`);
