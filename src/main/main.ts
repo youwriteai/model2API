@@ -13,97 +13,101 @@ import ServicesSafe from './services';
 import setupElectronTools from './electron';
 import { getConfig } from './utils';
 
-(async () => {
-  const settings = await getConfig();
+try {
+  (async () => {
+    const settings = await getConfig();
 
-  // Initialize Express
-  let serverApp = fastify();
+    // Initialize Express
+    let serverApp = fastify();
 
-  let queueExpress = queue({
-    activeLimit: settings.activeLimit,
-    queuedLimit: settings.queuedLimit,
-  });
-
-  const services = new ServicesSafe(settings);
-
-  async function initServer(port: number) {
-    serverApp = fastify();
-    queueExpress = queue({
+    let queueExpress = queue({
       activeLimit: settings.activeLimit,
       queuedLimit: settings.queuedLimit,
     });
 
-    await serverApp.register(fastifyExpressPlugin);
+    const services = new ServicesSafe(settings);
 
-    // @ts-ignore
-    serverApp.use(queueExpress);
+    async function initServer(port: number) {
+      serverApp = fastify();
+      queueExpress = queue({
+        activeLimit: settings.activeLimit,
+        queuedLimit: settings.queuedLimit,
+      });
 
-    await serverApp.register(cors, {
-      // put your options here
-      allowedHeaders: '*',
-    });
+      await serverApp.register(fastifyExpressPlugin);
 
-    // serverApp.options('/*', async (_req, reply) => {
-    //   return reply.status(200);
-    // });
+      // @ts-ignore
+      serverApp.use(queueExpress);
 
-    await services.setupServerApp(serverApp);
+      await serverApp.register(cors, {
+        // put your options here
+        allowedHeaders: '*',
+      });
 
-    serverApp.listen({
-      port,
-    });
-  }
+      // serverApp.options('/*', async (_req, reply) => {
+      //   return reply.status(200);
+      // });
 
-  async function closeServer() {
-    if (serverApp) await serverApp.close();
-    return null;
-  }
+      await services.setupServerApp(serverApp);
 
-  async function startServer(port: number) {
-    await closeServer();
-    await initServer(port);
+      serverApp.listen({
+        port,
+      });
+    }
 
-    console.log(`Server Running on port ${port}`);
-  }
+    async function closeServer() {
+      if (serverApp) await serverApp.close();
+      return null;
+    }
 
-  services.setupIpc(ipcMain);
-  let mainWindow: BrowserWindow | null = null;
-
-  if (settings.gui) {
-    ipcMain.on('start-server', async (event, { port }) => {
-      try {
-        await startServer(port);
-        event.reply('server-status', `Running`, port);
-      } catch (err: any) {
-        console.log(err);
-        event.reply('error', err.message);
-      }
-    });
-
-    ipcMain.setMaxListeners(200);
-
-    ipcMain.on('stop-server', async (event) => {
+    async function startServer(port: number) {
       await closeServer();
-      console.log('Server stopped.');
-      event.reply('server-status', 'Stopped');
-    });
+      await initServer(port);
 
-    ipcMain.on('change-port', async (event, newPort) => {
-      await startServer(newPort);
-    });
+      console.log(`Server Running on port ${port}`);
+    }
 
-    ipcMain.on('ipc-example', async (event, arg) => {
-      const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-      console.log(msgTemplate(arg));
-      event.reply('ipc-example', msgTemplate('pong'));
-    });
+    services.setupIpc(ipcMain);
+    let mainWindow: BrowserWindow | null = null;
 
-    setupElectronTools(mainWindow);
-  } else {
-    (async () => {
-      await startServer(settings.port);
+    if (settings.gui) {
+      ipcMain.on('start-server', async (event, { port }) => {
+        try {
+          await startServer(port);
+          event.reply('server-status', `Running`, port);
+        } catch (err: any) {
+          console.log(err);
+          event.reply('error', err.message);
+        }
+      });
 
-      await services.start(settings.starting);
-    })();
-  }
-})();
+      ipcMain.setMaxListeners(200);
+
+      ipcMain.on('stop-server', async (event) => {
+        await closeServer();
+        console.log('Server stopped.');
+        event.reply('server-status', 'Stopped');
+      });
+
+      ipcMain.on('change-port', async (event, newPort) => {
+        await startServer(newPort);
+      });
+
+      ipcMain.on('ipc-example', async (event, arg) => {
+        const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
+        console.log(msgTemplate(arg));
+        event.reply('ipc-example', msgTemplate('pong'));
+      });
+
+      setupElectronTools(mainWindow);
+    } else {
+      (async () => {
+        await startServer(settings.port);
+
+        await services.start(settings.starting);
+      })();
+    }
+  })();
+} catch (err: any) {
+  process.stdout.write(err.message || err);
+}
