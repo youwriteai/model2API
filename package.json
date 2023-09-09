@@ -249,8 +249,9 @@
     ],
     "publish": {
       "provider": "github",
+      "releaseType": "release",
       "owner": "youwriteai",
-      "repo": "LEA"
+      "repo": "model2API"
     }
   },
   "devEngines": {
