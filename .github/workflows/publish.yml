@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [ubuntu-latest] #macos-latest
 
     steps:
       - name: Checkout git repo
@@ -38,5 +38,5 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           # This is used for uploading release assets to github
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm exec electron-builder -- --publish always --win --mac --linux
+        run: | #--mac
+          npm exec electron-builder -- --publish always --win --linux
