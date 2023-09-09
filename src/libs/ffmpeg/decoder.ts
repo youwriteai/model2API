@@ -15,9 +15,9 @@ import mime from 'mime-types';
 import { randomUUID } from 'crypto';
 import { WaveFile } from 'wavefile';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
-import { tempPath } from '../../main/utils';
+import { defaultSettings, tempPath } from '../../main/utils';
 
-ffmpeg.setFfmpegPath(ffmpegPath.path);
+
 
 function runFfmpegSync(command: ffmpeg.FfmpegCommand) {
   return new Promise((s, r) => {
@@ -26,6 +26,7 @@ function runFfmpegSync(command: ffmpeg.FfmpegCommand) {
 }
 
 export default async function decodeAudio(data: Buffer, mimeType: string) {
+  ffmpeg.setFfmpegPath(defaultSettings.ffmpegPath || ffmpegPath.path);
   const command = ffmpeg({});
   const ext = mime.extension(mimeType);
   const tempFilePathOld = path.join(tempPath, `${randomUUID()}.old.${ext}`);

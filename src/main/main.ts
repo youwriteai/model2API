@@ -2,19 +2,21 @@
 /* eslint-disable no-use-before-define */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-console */
-import { BrowserWindow, ipcMain } from 'electron';
-import fastify from 'fastify';
-import cors from '@fastify/cors';
-// @ts-ignore
-import fastifyExpressPlugin from '@fastify/express';
-// @ts-ignore
-import queue from 'express-queue';
-import ServicesSafe from './services';
-import setupElectronTools from './electron';
-import { getConfig } from './utils';
+import type { BrowserWindow } from "electron";
 
 try {
   (async () => {
+    const { ipcMain } = await import('electron');
+    const { default: fastify } = await import('fastify');
+    const { default: cors } = await import('@fastify/cors');
+    // @ts-ignore
+    const { default: fastifyExpressPlugin } = await import('@fastify/express');
+    // @ts-ignore
+    const { default: queue } = await import('express-queue');
+    const { default: ServicesSafe } = await import('./services');
+    const { default: setupElectronTools } = await import('./electron');
+    const { getConfig } = await import('./utils');
+
     const settings = await getConfig();
 
     // Initialize Express

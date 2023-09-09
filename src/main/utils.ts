@@ -49,6 +49,7 @@ export interface DefaultSettings {
   starting: string[];
   servicesConfig: Record<string, any>;
   modelAlias: Record<string, string | number>;
+  ffmpegPath?: string;
 }
 
 // eslint-disable-next-line prefer-const

@@ -27,6 +27,13 @@ jobs:
           node-version: 18
           cache: npm
 
+      - name: Install release packages
+        run: |
+          cd release/app
+          npm install
+          cd ../..
+
+
       - name: Install and build
         run: |
           npm install
