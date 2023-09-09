@@ -30,12 +30,12 @@ function LocalEmbeddingAPI() {
   const [serverPort, setServerPort] = useState<number>(0);
 
   useEffect(() => {
-    window.myAPI.receive('services', (services: string[]) => {
+    window.myAPI?.receive('services', (services: string[]) => {
       setAvailableServices(services);
     });
-    window.myAPI.send('services', true);
+    window.myAPI?.send('services', true);
 
-    window.myAPI.receive('server-status', (message: string, port: number) => {
+    window.myAPI?.receive('server-status', (message: string, port: number) => {
       setServerPort(port);
       setServerStatus(message as any);
     });
@@ -125,7 +125,7 @@ function ServiceItem(props: { name: string }) {
   };
 
   useEffect(() => {
-    window.myAPI.receive(
+    window.myAPI?.receive(
       `${props.name}-models`,
       (options: { models: Model[] }) => {
         console.log({ models });
@@ -133,17 +133,17 @@ function ServiceItem(props: { name: string }) {
       }
     );
 
-    window.myAPI.send(`${props.name}-models`, true);
+    window.myAPI?.send(`${props.name}-models`, true);
 
     const pingIntr = setInterval(() => {
       window.myAPI.send(`${props.name}-ping`, true);
     }, 500);
 
-    window.myAPI.receive(`${props.name}-error`, (message: string) => {
+    window.myAPI?.receive(`${props.name}-error`, (message: string) => {
       console.log(message);
     });
 
-    window.myAPI.receive(
+    window.myAPI?.receive(
       `${props.name}-status`,
       (newStatus: ExtractorStatus) => {
         setStatus((status) => ({ ...status, ...newStatus }));
