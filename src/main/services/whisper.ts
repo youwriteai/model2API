@@ -79,43 +79,70 @@ export default class whisperService
     await app.register(fastifyMultipart, {
       prefix: '/v1/audio/transcriptions',
       throwFileSizeLimit: false,
+      // attachFieldsToBody: true,
+      addToBody: true,
     });
 
-    app.post('/v1/audio/transcriptions', async (req, reply) => {
-      try {
-        // @ts-ignore
-        const model = undefined as any;
+    app.post(
+      '/v1/audio/transcriptions',
+      {
+        schema: {
+          consumes: ['multipart/form-data'],
+          body: {
+            type: 'object',
+            properties: {
+              model: {
+                type: 'string',
+              },
+              file: {
+                format: 'binary',
+              },
+            },
+          },
+        },
+      },
+      async (req, reply) => {
+        try {
+          const { file, model } = (await req.body) as {
+            model: string;
+            file: {
+              data: any;
+              mimetype: string;
+            }[];
+          };
+          if (model && model !== this.actualModel) {
+            this.actualModel = Models.includes(model) ? model : Models[0];
+            await this.load(
+              { selectedModel: this.actualModel },
+              this.sendStatus.bind(this)
+            );
+          }
 
-        if (model && model !== this.actualModel) {
-          this.actualModel = Models.includes(model) ? model : Models[0];
-          await this.load(
-            { selectedModel: this.actualModel },
-            this.sendStatus.bind(this)
-          );
+          if (!this.extractor)
+            await this.load(
+              { selectedModel: this.actualModel },
+              this.sendStatus.bind(this)
+            );
+
+          if (!file?.[0]) throw new Error('You need at least one audio file');
+
+          const data = file[0];
+          const buff = data.data;
+
+          let result = '';
+          if (data && buff) {
+            const audioData = await convertAudioToSample(buff, data.mimetype);
+            result = await this.transcript(audioData);
+          }
+
+          return reply.send({
+            text: result,
+          });
+        } catch (error: any) {
+          return reply.status(500).send({ error: error.message });
         }
-
-        if (!this.extractor)
-          await this.load(
-            { selectedModel: this.actualModel },
-            this.sendStatus.bind(this)
-          );
-
-        const data = await req.file();
-        const buff = await data?.toBuffer();
-
-        let result = '';
-        if (data && buff) {
-          const audioData = await convertAudioToSample(buff, data.mimetype);
-          result = await this.transcript(audioData);
-        }
-
-        return reply.send({
-          text: result,
-        });
-      } catch (error: any) {
-        return reply.status(500).send({ error: error.message });
       }
-    });
+    );
     app.get('/v1/audio/transcriptions/models', (req, reply) => {
       reply.send({ models: Models });
     });

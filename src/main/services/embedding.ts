@@ -58,8 +58,7 @@ export default class EmbeddingsService
   async setupServer(app: ReturnType<typeof fastify>) {
     app.post('/api/embeddings', async (req, reply) => {
       try {
-        // @ts-ignore
-        const { input, model } = (await req.body()) as any;
+        const { input, model } = (await req.body) as any;
 
         if (model && model !== this.actualModel) {
           this.actualModel = Models.includes(model) ? model : Models[0];
