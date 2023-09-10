@@ -30,7 +30,7 @@ const Models = [
   'Xenova/nb-whisper-medium-beta',
 ];
 
-const serviceName = 'whisper';
+const serviceName = 'Whisper';
 
 export default class whisperService
   extends ServiceBase

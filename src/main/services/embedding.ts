@@ -14,7 +14,7 @@ import ServiceInterface from './types';
 import type ServicesSafe from '.';
 import ServiceBase from './base';
 
-const serviceName = 'embeddings';
+const serviceName = 'Embeddings';
 
 export default class EmbeddingsService
   extends ServiceBase
