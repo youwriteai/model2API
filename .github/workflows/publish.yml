@@ -32,6 +32,7 @@ jobs:
       - name: Publish releases
         env:
           # These values are used for auto updates signing
+          CSC_IDENTITY_AUTO_DISCOVERY: false
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASS }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
