@@ -132,7 +132,6 @@
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-    "@xenova/transformers": "^2.6.0",
     "autoprefixer": "^10.4.15",
     "browserslist-config-erb": "^0.0.3",
     "chalk": "^4.1.2",

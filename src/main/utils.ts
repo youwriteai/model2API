@@ -66,7 +66,7 @@ export let defaultSettings: DefaultSettings = {
     },
   },
   modelAlias: {
-    'wisper-*': 0,
+    'whisper-*': 0,
     'gpt*': 0,
   },
 };

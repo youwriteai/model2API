@@ -3,18 +3,18 @@
 // /* eslint-disable @typescript-eslint/no-unused-vars */
 // /* eslint-disable no-console */
 import type { BrowserWindow } from 'electron';
+import { ipcMain } from 'electron';
 import { saveConfig } from './utils';
+import ServicesSafe from './services';
 
 try {
   (async () => {
-    const { ipcMain } = await import('electron');
     const { default: fastify } = await import('fastify');
     const { default: cors } = await import('@fastify/cors');
     // @ts-ignore
     const { default: fastifyExpressPlugin } = await import('@fastify/express');
     // @ts-ignore
     const { default: queue } = await import('express-queue');
-    const { default: ServicesSafe } = await import('./services');
     const { default: setupElectronTools } = await import('./electron');
     const { getConfig } = await import('./utils');
 
@@ -53,7 +53,7 @@ try {
 
       await services.setupServerApp(serverApp);
 
-      serverApp.listen({
+      await serverApp.listen({
         port,
       });
     }
@@ -118,11 +118,16 @@ try {
 
       setupElectronTools(mainWindow);
     } else {
-      (async () => {
-        await startServer(settings.port);
+      try {
+        (async () => {
+          await startServer(settings.port);
 
-        await services.start(settings.starting);
-      })();
+          await services.start(settings.starting);
+        })();
+      } catch (err: any) {
+        process.stdout.write(err.message);
+        process.exit();
+      }
     }
   })();
 } catch (err: any) {

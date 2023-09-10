@@ -81,14 +81,15 @@ function LocalEmbeddingAPI() {
             )}
           </div>
         </div>
-      </div>
-      <div className="w-full overflow-y-auto">
+
         {serverStatus === 'Running' && (
           <div className="flex justify-between items-center md:flex-col px-3 gap-2 w-full">
             <div className="font-bold text-lg">basePath</div>
             <div className="select-all">http://localhost:{serverPort}/v1</div>
           </div>
         )}
+      </div>
+      <div className="w-full overflow-y-auto">
         <div className="p-2 flex flex-col gap-2 w-full">
           <div className="w-full text-center text-lg font-bold">Options</div>
           <div className="label-input">

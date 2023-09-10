@@ -30,9 +30,9 @@ const Models = [
   'Xenova/nb-whisper-medium-beta',
 ];
 
-const serviceName = 'wisper';
+const serviceName = 'whisper';
 
-export default class WisperService
+export default class whisperService
   extends ServiceBase
   implements ServiceInterface
 {
@@ -77,11 +77,11 @@ export default class WisperService
 
   async setupServer(app: ReturnType<typeof fastify>) {
     await app.register(fastifyMultipart, {
-      prefix: '/audio/transcriptions',
+      prefix: '/v1/audio/transcriptions',
       throwFileSizeLimit: false,
     });
 
-    app.post('/audio/transcriptions', async (req, reply) => {
+    app.post('/v1/audio/transcriptions', async (req, reply) => {
       try {
         // @ts-ignore
         const model = undefined as any;
@@ -116,7 +116,7 @@ export default class WisperService
         return reply.status(500).send({ error: error.message });
       }
     });
-    app.get('/audio/transcriptions/models', (req, reply) => {
+    app.get('/v1/audio/transcriptions/models', (req, reply) => {
       reply.send({ models: Models });
     });
   }

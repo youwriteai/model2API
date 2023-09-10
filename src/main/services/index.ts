@@ -4,9 +4,9 @@ import fastify from 'fastify';
 import { DefaultSettings, defaultSettings } from '../utils';
 import EmbeddingsService from './embedding';
 import ServiceInterface from './types';
-import WisperService from './wisper';
+import whisperService from './whisper';
 
-const Services = [EmbeddingsService, WisperService];
+const Services = [EmbeddingsService, whisperService];
 
 export default class ServicesSafe {
   services: ServiceInterface[] = [];
