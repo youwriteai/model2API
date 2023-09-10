@@ -77,14 +77,14 @@ export default class whisperService
 
   async setupServer(app: ReturnType<typeof fastify>) {
     await app.register(fastifyMultipart, {
-      prefix: '/v1/audio/transcriptions',
+      prefix: '/api/audio/transcriptions',
       throwFileSizeLimit: false,
       // attachFieldsToBody: true,
       addToBody: true,
     });
 
     app.post(
-      '/v1/audio/transcriptions',
+      '/api/audio/transcriptions',
       {
         schema: {
           consumes: ['multipart/form-data'],
@@ -143,7 +143,7 @@ export default class whisperService
         }
       }
     );
-    app.get('/v1/audio/transcriptions/models', (req, reply) => {
+    app.get('/api/audio/transcriptions/models', (req, reply) => {
       reply.send({ models: Models });
     });
   }

@@ -85,7 +85,7 @@ function LocalEmbeddingAPI() {
         {serverStatus === 'Running' && (
           <div className="flex justify-between items-center md:flex-col px-3 gap-2 w-full">
             <div className="font-bold text-lg">basePath</div>
-            <div className="select-all">http://localhost:{serverPort}/v1</div>
+            <div className="select-all">http://localhost:{serverPort}/api</div>
           </div>
         )}
       </div>
