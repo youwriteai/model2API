@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest] #macos-latest
+        os: [macos-latest]
 
     steps:
       - name: Checkout git repo
@@ -40,5 +40,5 @@ jobs:
           # WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           # This is used for uploading release assets to github
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: | #--mac
-          npm exec electron-builder -- --publish always --win --linux
+        run: |
+          npm exec electron-builder -- --publish always --win --linux --mac
