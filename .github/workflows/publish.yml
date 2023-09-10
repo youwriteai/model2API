@@ -32,7 +32,7 @@ jobs:
 
       - name: Install and build
         run: |
-          npm install --omit=dev
+          npm install --production=false
           npm run postinstall
           npm run build
 
