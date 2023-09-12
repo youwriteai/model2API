@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-console */
 import { IpcMain } from 'electron';
@@ -6,6 +7,7 @@ import { getAvailableModels } from '../utils';
 import Models from '../../consts/models';
 import ServiceInterface from './types';
 import type ServicesSafe from '.';
+import type { ServiceInfo } from '../../types/service';
 
 const serviceName = 'default';
 export default class ServiceBase implements ServiceInterface {
@@ -38,8 +40,8 @@ export default class ServiceBase implements ServiceInterface {
       e.reply?.(await this.getStatus());
     });
 
-    this.ipc?.on(`${this.serviceName}-models`, async (e) => {
-      e.reply?.(`${this.serviceName}-models`, await this.getModels());
+    this.ipc?.on(`${this.serviceName}-info`, async (e) => {
+      e.reply?.(`${this.serviceName}-info`, await this.getInfo());
     });
   }
 
@@ -62,9 +64,11 @@ export default class ServiceBase implements ServiceInterface {
     );
   }
 
-  async getModels() {
+  async getInfo(): Promise<ServiceInfo> {
     const available = await getAvailableModels();
     return {
+      examples: [],
+      description: '',
       models: Models.map((m) => ({
         name: m,
         loaded: available[m],
@@ -83,6 +87,6 @@ export default class ServiceBase implements ServiceInterface {
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _cb: (progress: any) => void
-    // eslint-disable-next-line no-empty-function
+    // eslint-disable-next-line no-empty-function, @typescript-eslint/no-empty-function
   ) {}
 }

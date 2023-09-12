@@ -6,13 +6,14 @@
 
 import { IpcMain } from 'electron';
 import fastify from 'fastify';
-import { AsyncReturnType } from 'types/utils';
 import { pipeline as Pip } from '@xenova/transformers';
+import { AsyncReturnType } from '../../types/utils';
 import { getAvailableModels, modelsDir } from '../utils';
 import Models from '../../consts/models';
 import ServiceInterface from './types';
 import type ServicesSafe from '.';
 import ServiceBase from './base';
+import type { ServiceInfo } from '../../types/service';
 
 const serviceName = 'Embeddings';
 
@@ -45,9 +46,17 @@ export default class EmbeddingsService
     });
   }
 
-  async getModels() {
+  async getInfo(): Promise<ServiceInfo> {
     const available = await getAvailableModels();
     return {
+      description: '',
+      examples: [
+        {
+          curl: `curl --location 'http://{{URL}}/api/embeddings' \\
+          --header 'Content-Type: application/json' \\
+          --data '{"input": ["some_input","some_input","some_input1235465","some_input3"]}'`,
+        },
+      ],
       models: Models.map((m) => ({
         name: m,
         loaded: available[m],
@@ -80,7 +89,7 @@ export default class EmbeddingsService
                 ? input.map((singleInput) => this.createEmbedding(singleInput))
                 : [this.createEmbedding(input)]
             )
-          ).map((embedding: any, index: any) => ({
+          ).map((embedding, index) => ({
             object: 'embedding',
             embedding,
             index,

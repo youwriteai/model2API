@@ -6,13 +6,14 @@
 
 import { IpcMain } from 'electron';
 import fastify from 'fastify';
-import { AsyncReturnType } from 'types/utils';
 import { pipeline as Pip } from '@xenova/transformers';
 import fastifyMultipart from '@fastify/multipart';
+import { AsyncReturnType } from '../../types/utils';
 import { convertAudioToSample, getAvailableModels, modelsDir } from '../utils';
 import ServiceInterface from './types';
 import ServiceBase from './base';
 import type ServicesSafe from '.';
+import type { ServiceInfo } from '../../types/service';
 
 const Models = [
   'Xenova/whisper-tiny.en',
@@ -65,9 +66,11 @@ export default class whisperService
     );
   }
 
-  async getModels() {
+  async getInfo(): Promise<ServiceInfo> {
     const available = await getAvailableModels();
     return {
+      description: '',
+      examples: [],
       models: Models.map((m) => ({
         name: m,
         loaded: available[m],
