@@ -191,7 +191,6 @@
     "productName": "model2API",
     "appId": "org.youwriteai.model2API",
     "asar": false,
-    "asarUnpack": "**\\*.{node,dll}",
     "files": [
       "dist",
       "node_modules",
