@@ -1,6 +1,8 @@
-<div align="center">
-
 # Model2API
+<div align="center">
+  
+![image](https://github.com/youwriteai/model2API/assets/57036855/2f4ddb1e-9822-40fc-8e78-ccf2c00c545d)
+
 
 [![Build Status][github-actions-status]][github-actions-url]
 [![Github Tag][github-tag-image]][github-tag-url]
@@ -71,5 +73,3 @@ Engage with developers, enthusiasts, and our team on [Discord](https://discord.g
 [github-actions-url]: https://github.com/youwriteai/model2API/actions
 [github-tag-image]: https://img.shields.io/github/tag/youwriteai/model2API.svg?label=version
 [github-tag-url]: https://github.com/youwriteai/model2API/releases/latest
-
----
