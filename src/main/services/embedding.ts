@@ -60,7 +60,7 @@ export default class EmbeddingsService
       description: '',
       examples: [
         {
-          curl: `curl --location 'http://{{URL}}/api/embeddings' \\
+          curl: `curl --location '{{basepath}}/embeddings' \\
           --header 'Content-Type: application/json' \\
           --data '{"input": ["some_input","some_input","some_input1235465","some_input3"]}'`,
         },

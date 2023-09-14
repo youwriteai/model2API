@@ -5,7 +5,7 @@ import { ServiceExample } from '../../../types/service';
 
 export default function ServiceExamples(props: {
   examples: ServiceExample[];
-  url: string;
+  basePath: string;
 }) {
   return (
     <div className="flex flex-col w-full gap-3">
@@ -23,7 +23,7 @@ export default function ServiceExamples(props: {
               </pre>
             )}
             {example.curl
-              ?.replaceAll('{{URL}}', props.url)
+              ?.replaceAll('{{basepath}}', props.basePath)
               .split('\n')
               .map((s, i) => (
                 <pre key={s + i} data-prefix={i === 0 ? '>' : '  '}>

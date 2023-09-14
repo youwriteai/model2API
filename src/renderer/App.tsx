@@ -135,7 +135,7 @@ function LocalEmbeddingAPI() {
           </div>
           <div className="p-3 border-black rounded-md h-full flex flex-col gap-4 overflow-y-auto">
             {availableServices.map((service) => (
-              <ServiceItem key={service} name={service} url={basePath} />
+              <ServiceItem key={service} name={service} basePath={basePath} />
             ))}
           </div>
         </div>
@@ -144,7 +144,7 @@ function LocalEmbeddingAPI() {
   );
 }
 
-function ServiceItem(props: { name: string; url: string }) {
+function ServiceItem(props: { name: string; basePath: string }) {
   const [info, setInfo] = useState<ServiceInfo>({
     description: '',
     examples: [],
@@ -218,7 +218,7 @@ function ServiceItem(props: { name: string; url: string }) {
             )}
           </div>
         </div>
-        <ServiceExamples examples={info.examples} url={props.url} />
+        <ServiceExamples examples={info.examples} basePath={props.basePath} />
         <div className="flex flex-col card-actions w-full">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center">
