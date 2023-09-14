@@ -1,8 +1,10 @@
 # Model2API
 
 <div align="center">
-  
-![image](https://github.com/youwriteai/model2API/assets/57036855/2f4ddb1e-9822-40fc-8e78-ccf2c00c545d)
+
+![image](https://github.com/youwriteai/model2API/assets/57036855/c7d35e97-aed9-4826-a68d-58b33d36a901)
+
+
 
 
 [![Build Status][github-actions-status]][github-actions-url]
