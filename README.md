@@ -1,4 +1,5 @@
 # Model2API
+
 <div align="center">
   
 ![image](https://github.com/youwriteai/model2API/assets/57036855/2f4ddb1e-9822-40fc-8e78-ccf2c00c545d)
@@ -28,6 +29,9 @@
 ---
 
 ### Getting Started:
+
+#### Requirements:
+- [Ffmpeg](https://ffmpeg.org/): To make the whisper service work with files that aren't wav files, you must install [Ffmpeg](https://ffmpeg.org/). If you're using Windows, you can follow [this](https://phoenixnap.com/kb/ffmpeg-windows) helpful guide.
 
 #### 1. Download:
 Access the releases page to download the tailored version for your architecture.
