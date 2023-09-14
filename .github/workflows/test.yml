@@ -27,6 +27,7 @@ jobs:
       - name: npm test
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USE_HARD_LINKS: false
         run: |
           npm run package
           npm run lint
