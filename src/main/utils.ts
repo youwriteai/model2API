@@ -19,6 +19,7 @@ import mime from 'mime-types';
 // import { OggOpusDecoder } from 'ogg-opus-decoder';
 import Models from '../consts/models';
 import ffmpegDecoder from '../libs/ffmpeg/decoder';
+import { DefaultSettings } from './services/types';
 
 export const isProduction = process.env.NODE_ENV === 'production';
 export const isDevelopment =
@@ -28,7 +29,7 @@ const exePath = process.argv[0];
 
 const homePath = isDevelopment
   ? path.join(process.cwd(), './release/app/dist')
-  : path.join(exePath, '..');
+  : path.join(exePath, '../..');
 
 export const tempPath = path.join(homePath, './temp');
 
@@ -42,17 +43,6 @@ export const modelsDir = path.join(homePath, './models');
 
 export const configPath = path.join(homePath, './config.json');
 
-export interface DefaultSettings {
-  port: number;
-  activeLimit: number;
-  queuedLimit: number;
-  gui: boolean;
-  starting: string[];
-  servicesConfig: Record<string, any>;
-  modelAlias: Record<string, string | number>;
-  ffmpegPath?: string;
-}
-
 // eslint-disable-next-line prefer-const
 export let defaultSettings: DefaultSettings = {
   port: 3005,
@@ -63,11 +53,15 @@ export let defaultSettings: DefaultSettings = {
   servicesConfig: {
     embeddings: {
       selectedModel: Models[0],
+      modelAliases: {
+        'gpt*': 0,
+      },
     },
-  },
-  modelAlias: {
-    'whisper-*': 0,
-    'gpt*': 0,
+    whisper: {
+      modelAliases: {
+        'whisper-*': 0,
+      },
+    },
   },
 };
 

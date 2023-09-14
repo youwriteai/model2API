@@ -5,7 +5,7 @@ import { IpcMain } from 'electron';
 import fastify from 'fastify';
 import { getAvailableModels } from '../utils';
 import Models from '../../consts/models';
-import ServiceInterface from './types';
+import ServiceInterface, { ServiceConfig } from './types';
 import type ServicesSafe from '.';
 import type { ServiceInfo } from '../../types/service';
 
@@ -19,8 +19,11 @@ export default class ServiceBase implements ServiceInterface {
 
   lastStatus: any;
 
-  constructor(safe: any) {
+  config: ServiceConfig | null;
+
+  constructor(safe: any, config: any) {
     this.safe = safe;
+    this.config = config || null;
   }
 
   async setupIpc(): Promise<void> {

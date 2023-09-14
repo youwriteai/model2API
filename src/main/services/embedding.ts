@@ -10,7 +10,7 @@ import { pipeline as Pip } from '@xenova/transformers';
 import { AsyncReturnType } from '../../types/utils';
 import { getAvailableModels, modelsDir } from '../utils';
 import Models from '../../consts/models';
-import ServiceInterface from './types';
+import ServiceInterface, { ServiceConfig } from './types';
 import type ServicesSafe from '.';
 import ServiceBase from './base';
 import type { ServiceInfo } from '../../types/service';
@@ -27,19 +27,27 @@ export default class EmbeddingsService
 
   extractor: AsyncReturnType<typeof Pip> | null | undefined;
 
-  actualModel: string = Models[0];
+  usedModel: string = Models[0];
 
-  constructor(ipc: IpcMain, safe: ServicesSafe) {
-    super(safe);
+  constructor(ipc: IpcMain, safe: ServicesSafe, config: ServiceConfig) {
+    super(safe, config);
     this.ipc = ipc;
   }
 
-  async load(props: { selectedModel: string }, cb: (progress: any) => void) {
+  async load(
+    props: Parameters<ServiceInterface['load']>[0],
+    cb: Parameters<ServiceInterface['load']>[1]
+  ) {
+    const model =
+      typeof props.selectedModel === 'number'
+        ? Models[props.selectedModel]
+        : props.selectedModel || this.usedModel || Models[0];
+
     // eslint-disable-next-line no-new-func
     const { pipeline }: { pipeline: typeof Pip } = await Function(
       'return import("@xenova/transformers")'
     )();
-    this.extractor = await pipeline('feature-extraction', props.selectedModel, {
+    this.extractor = await pipeline('feature-extraction', model, {
       progress_callback: cb,
       // quantized: false,
       cache_dir: modelsDir,
@@ -65,20 +73,29 @@ export default class EmbeddingsService
   }
 
   async setupServer(app: ReturnType<typeof fastify>) {
+    // on requesting embeddings of text
     app.post('/api/embeddings', async (req, reply) => {
       try {
         const { input, model } = (await req.body) as any;
 
-        if (model && model !== this.actualModel) {
-          this.actualModel = Models.includes(model) ? model : Models[0];
-          await this.load({ selectedModel: this.actualModel }, console.log);
+        if (model && model !== this.usedModel) {
+          const k =
+            this.config?.modelAliases?.[model] ||
+            Object.entries(this.config?.modelAliases || {}).filter(
+              ([keyreg, res]) => new RegExp(keyreg).test(model)
+            )[0]?.[1] ||
+            (Models.includes(model) ? model : Models[0]);
+
+          this.usedModel = typeof k === 'number' ? Models[k] : k;
+
+          await this.load({ selectedModel: this.usedModel }, console.log);
         }
         if (!this.extractor) {
           return reply.status(500).send({ error: 'Extractor not initialized' });
         }
 
         const results = {
-          model: this.actualModel,
+          model: this.usedModel,
           usage: {
             prompt_tokens: 8,
             total_tokens: 8,

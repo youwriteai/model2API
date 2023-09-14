@@ -10,7 +10,7 @@ import { pipeline as Pip } from '@xenova/transformers';
 import fastifyMultipart from '@fastify/multipart';
 import { AsyncReturnType } from '../../types/utils';
 import { convertAudioToSample, getAvailableModels, modelsDir } from '../utils';
-import ServiceInterface from './types';
+import ServiceInterface, { ServiceConfig } from './types';
 import ServiceBase from './base';
 import type ServicesSafe from '.';
 import type { ServiceInfo } from '../../types/service';
@@ -43,27 +43,31 @@ export default class whisperService
 
   extractor: AsyncReturnType<typeof Pip> | null | undefined;
 
-  actualModel: string = Models[0];
+  usedModel: string = Models[0];
 
-  constructor(ipc: IpcMain, safe: ServicesSafe) {
-    super(safe);
+  constructor(ipc: IpcMain, safe: ServicesSafe, config: ServiceConfig) {
+    super(safe, config);
     this.ipc = ipc;
   }
 
-  async load(props: { selectedModel: string }, cb: (progress: any) => void) {
+  async load(
+    props: Parameters<ServiceInterface['load']>[0],
+    cb: Parameters<ServiceInterface['load']>[1]
+  ) {
+    const model =
+      typeof props.selectedModel === 'number'
+        ? Models[props.selectedModel]
+        : props.selectedModel || this.usedModel || Models[0];
+
     // eslint-disable-next-line no-new-func
     const { pipeline }: { pipeline: typeof Pip } = await Function(
       'return import("@xenova/transformers")'
     )();
-    this.extractor = await pipeline(
-      'automatic-speech-recognition',
-      props.selectedModel,
-      {
-        progress_callback: cb,
-        // quantized: false,
-        cache_dir: modelsDir,
-      }
-    );
+    this.extractor = await pipeline('automatic-speech-recognition', model, {
+      progress_callback: cb,
+      // quantized: false,
+      cache_dir: modelsDir,
+    });
   }
 
   async getInfo(): Promise<ServiceInfo> {
@@ -113,17 +117,24 @@ export default class whisperService
               mimetype: string;
             }[];
           };
-          if (model && model !== this.actualModel) {
-            this.actualModel = Models.includes(model) ? model : Models[0];
+          if (model && model !== this.usedModel) {
+            const k =
+              this.config?.modelAliases?.[model] ||
+              Object.entries(this.config?.modelAliases || {}).filter(
+                ([keyreg, res]) => new RegExp(keyreg).test(model)
+              )[0]?.[1] ||
+              (Models.includes(model) ? model : Models[0]);
+
+            this.usedModel = typeof k === 'number' ? Models[k] : k;
             await this.load(
-              { selectedModel: this.actualModel },
+              { selectedModel: this.usedModel },
               this.sendStatus.bind(this)
             );
           }
 
           if (!this.extractor)
             await this.load(
-              { selectedModel: this.actualModel },
+              { selectedModel: this.usedModel },
               this.sendStatus.bind(this)
             );
 

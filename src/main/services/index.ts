@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 import { IpcMain } from 'electron';
 import fastify from 'fastify';
-import { DefaultSettings, defaultSettings } from '../utils';
+import { defaultSettings } from '../utils';
 import EmbeddingsService from './embedding';
-import ServiceInterface from './types';
+import ServiceInterface, { DefaultSettings } from './types';
 import whisperService from './whisper';
 
 const Services = [EmbeddingsService, whisperService];
@@ -19,7 +19,11 @@ export default class ServicesSafe {
 
   setupIpc(ipcMain: IpcMain) {
     Services.forEach((Service) => {
-      const t = new Service(ipcMain, this);
+      const t = new Service(
+        ipcMain,
+        this,
+        defaultSettings.servicesConfig[Service.serviceName]
+      );
       this.services.push(t);
       t.setupIpc();
     });
@@ -46,7 +50,7 @@ export default class ServicesSafe {
       this.services
         .filter((s) => names.includes(s.serviceName))
         .map((s) =>
-          s.load(defaultSettings.servicesConfig.embeddings, (progress) =>
+          s.load(defaultSettings.servicesConfig[s.serviceName], (progress) =>
             console.log(`Service ${s.serviceName}: ${progress}`)
           )
         )
