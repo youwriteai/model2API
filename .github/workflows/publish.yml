@@ -49,4 +49,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USE_HARD_LINKS: false
         run: |
-          npm exec electron-builder -- --publish always --win --linux --mac
+          npx del-cli ./release/app/node_modules/sharp
+          cd ./release/app && npm install --platform=win32 --arch=x64  sharp && cd ../..
+          npm exec electron-builder -- -p always -w
+
+          npx del-cli ./release/app/node_modules/sharp
+          cd ./release/app && npm install --platform=linux --arch=x64 sharp && cd ../..
+          npm exec electron-builder -- -p always -l
+
+          npx del-cli ./release/app/node_modules/sharp
+          cd ./release/app && npm install --platform=darwin --arch=arm64 sharp && cd ../..
+          npm exec electron-builder -- -p always -m
