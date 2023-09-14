@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-function LocalEmbeddingAPI() {
+function LocalModel2API() {
   const [port, setPort] = useState(3005);
   const [serverStatus, setServerStatus] = useState<'Stopped' | 'Running'>(
     'Stopped'
@@ -126,7 +126,7 @@ function LocalEmbeddingAPI() {
               />
             </label>
           </div>
-        </div>{' '}
+        </div>
       </div>
       <div className="w-full bg-white dark:bg-gray-900 overflow-hidden">
         <div className="flex flex-col gap-2 w-full h-full">
@@ -254,5 +254,5 @@ function ServiceItem(props: { name: string; basePath: string }) {
 }
 
 export default function App() {
-  return <LocalEmbeddingAPI />;
+  return <LocalModel2API />;
 }
