@@ -110,12 +110,11 @@ export default function ServicePlayground(props: {
             >
               {/* body object */}
               {Object.entries(selectedExample.body || {}).map(([key, val]) => (
-                <div>
+                <div key={selectedExample.urlPath + key}>
                   <label>{key}:</label>
                   {val.type === 'object' ? (
                     <textarea
                       className="w-full p-2 rounded-md overflow-hidden"
-                      key={selectedExample.urlPath + key}
                       name={key}
                       id={key}
                       defaultValue={JSON.stringify(val.defaultValue, null, 2)}

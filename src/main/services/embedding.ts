@@ -30,6 +30,8 @@ export default class EmbeddingsService
 
   usedModel: string = Models[0];
 
+  models = Models;
+
   constructor(ipc: IpcMain, safe: ServicesSafe, config: ServiceConfig) {
     super(safe, config);
     this.ipc = ipc;
@@ -97,14 +99,7 @@ export default class EmbeddingsService
           input = [input];
         }
 
-        const k =
-          this.config?.modelAliases?.[model] ||
-          Object.entries(this.config?.modelAliases || {}).filter(
-            ([keyreg, res]) => new RegExp(keyreg).test(model)
-          )[0]?.[1] ||
-          (Models.includes(model) ? model : Models[0]);
-
-        const requestingModel = typeof k === 'number' ? Models[k] : k;
+        const requestingModel = this.getRequestedModel(model);
 
         if (requestingModel !== this.usedModel) {
           this.usedModel = requestingModel;

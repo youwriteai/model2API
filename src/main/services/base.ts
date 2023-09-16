@@ -1,3 +1,5 @@
+/* eslint-disable no-nested-ternary */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-console */
@@ -20,6 +22,10 @@ export default class ServiceBase implements ServiceInterface {
   lastStatus: any;
 
   config: ServiceConfig | null;
+
+  usedModel: string | undefined;
+
+  models: string[] = Models;
 
   constructor(safe: any, config: any) {
     this.safe = safe;
@@ -46,6 +52,27 @@ export default class ServiceBase implements ServiceInterface {
     this.ipc?.on(`${this.serviceName}-info`, async (e) => {
       e.reply?.(`${this.serviceName}-info`, await this.getInfo());
     });
+  }
+
+  getRequestedModel(model: string | null | undefined) {
+    const k = model?.length
+      ? //  priority 1: check if trying to use an existing model
+        this.models.includes(model)
+        ? model
+        : // priority 2: check if there is an explicit alias (not a regix)
+          this.config?.modelAliases?.[model] ||
+          // priority 3: use Already loaded model
+          this.usedModel ||
+          // priority 4: check if there is regex alias
+          Object.entries(this.config?.modelAliases || {}).filter(
+            ([keyreg, res]) => new RegExp(keyreg).test(model)
+          )[0]?.[1]
+      : // if model was not provided use the already loaded model
+        this.usedModel ||
+        // incase of used model being undefined
+        this.models[0];
+
+    return typeof k === 'number' ? this.models[k] : k;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

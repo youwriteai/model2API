@@ -8,8 +8,9 @@ import { IpcMain } from 'electron';
 import fastify from 'fastify';
 import { pipeline as Pip } from '@xenova/transformers';
 import fastifyMultipart from '@fastify/multipart';
+import convertAudioToSample from '../../libs/audioConverterToSample';
 import { AsyncReturnType } from '../../types/utils';
-import { convertAudioToSample, getAvailableModels, modelsDir } from '../utils';
+import { getAvailableModels, modelsDir } from '../utils';
 import ServiceInterface, { ServiceConfig } from './types';
 import ServiceBase from './base';
 import type ServicesSafe from '.';
@@ -97,6 +98,9 @@ export default class whisperService
       throwFileSizeLimit: false,
       // attachFieldsToBody: true,
       addToBody: true,
+      limits: {
+        fileSize: 999999999999999,
+      },
     });
 
     app.post(

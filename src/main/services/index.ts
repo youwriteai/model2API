@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 /* eslint-disable no-console */
 import { IpcMain } from 'electron';
 import fastify from 'fastify';
