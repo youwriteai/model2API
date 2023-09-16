@@ -74,7 +74,16 @@ export default class whisperService
     const available = await getAvailableModels();
     return {
       description: '',
-      examples: [],
+      examples: [
+        {
+          urlPath: `/audio/transcriptions`,
+          body: {
+            file: {
+              type: 'file',
+            },
+          },
+        },
+      ],
       models: Models.map((m) => ({
         name: m,
         loaded: available[m],

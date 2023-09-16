@@ -6,7 +6,7 @@ import EmbeddingsService from './embedding';
 import ServiceInterface, { DefaultSettings } from './types';
 import whisperService from './whisper';
 
-const Services = [EmbeddingsService, whisperService];
+const Services = [whisperService, EmbeddingsService];
 
 export default class ServicesSafe {
   services: ServiceInterface[] = [];

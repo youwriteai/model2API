@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable no-unreachable */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -63,6 +64,18 @@ export default class EmbeddingsService
           curl: `curl --location '{{basepath}}/embeddings' \\
           --header 'Content-Type: application/json' \\
           --data '{"input": ["some_input","some_input","some_input1235465","some_input3"]}'`,
+          urlPath: `/embeddings`,
+          body: {
+            input: {
+              defaultValue: [
+                'some_input',
+                'some_input',
+                'some_input1235465',
+                'some_input3',
+              ],
+              type: 'object',
+            },
+          },
         },
       ],
       models: Models.map((m) => ({
@@ -76,23 +89,33 @@ export default class EmbeddingsService
     // on requesting embeddings of text
     app.post('/api/embeddings', async (req, reply) => {
       try {
-        const { input, model } = (await req.body) as any;
+        let { input, model } = (await req.body) as any;
 
-        if (model && model !== this.usedModel) {
-          const k =
-            this.config?.modelAliases?.[model] ||
-            Object.entries(this.config?.modelAliases || {}).filter(
-              ([keyreg, res]) => new RegExp(keyreg).test(model)
-            )[0]?.[1] ||
-            (Models.includes(model) ? model : Models[0]);
+        try {
+          input = JSON.parse(input);
+        } catch {
+          input = [input];
+        }
 
-          this.usedModel = typeof k === 'number' ? Models[k] : k;
+        const k =
+          this.config?.modelAliases?.[model] ||
+          Object.entries(this.config?.modelAliases || {}).filter(
+            ([keyreg, res]) => new RegExp(keyreg).test(model)
+          )[0]?.[1] ||
+          (Models.includes(model) ? model : Models[0]);
 
+        const requestingModel = typeof k === 'number' ? Models[k] : k;
+
+        if (requestingModel !== this.usedModel) {
+          this.usedModel = requestingModel;
           await this.load({ selectedModel: this.usedModel }, console.log);
         }
-        if (!this.extractor) {
-          return reply.status(500).send({ error: 'Extractor not initialized' });
-        }
+
+        // if (!this.extractor) {
+        //   return reply.status(500).send({
+        //     error: 'Extractor not initialized, try loading a model first',
+        //   });
+        // }
 
         const results = {
           model: this.usedModel,
@@ -102,9 +125,9 @@ export default class EmbeddingsService
           },
           data: (
             await Promise.all(
-              Array.isArray(input)
-                ? input.map((singleInput) => this.createEmbedding(singleInput))
-                : [this.createEmbedding(input)]
+              input.map((singleInput: string) =>
+                this.createEmbedding(singleInput)
+              )
             )
           ).map((embedding, index) => ({
             object: 'embedding',

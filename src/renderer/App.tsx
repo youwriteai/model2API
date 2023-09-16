@@ -8,9 +8,7 @@
 import './App.css';
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { ExtractorStatus } from '../types/extractor-status';
-import { ServiceInfo } from '../types/service';
-import ServiceExamples from './components/service/examples';
+import ServiceItem from './components/service';
 
 declare global {
   interface Window {
@@ -62,7 +60,7 @@ function LocalModel2API() {
     document.title = `${document.title.split('-')[0]}-${serverStatus}`;
   }, [serverStatus]);
 
-  const basePath = `http://localhost:${serverPort || 'PORT'}/api`;
+  const basePath = `http://localhost:${serverPort || port}/api`;
 
   return (
     <div className="App bg-gray-100 dark:bg-black select-none flex flex-col md:flex-row w-screen h-screen overflow-hidden">
@@ -122,7 +120,7 @@ function LocalModel2API() {
                 className="input input-ghost input-sm select-all w-full xs:w-auto sm:w-full input-bordered"
                 value={basePath}
                 readOnly
-                onChange={handlePortChange}
+                onClick={() => copyToClipboard(basePath)}
               />
             </label>
           </div>
@@ -144,113 +142,26 @@ function LocalModel2API() {
   );
 }
 
-function ServiceItem(props: { name: string; basePath: string }) {
-  const [info, setInfo] = useState<ServiceInfo>({
-    description: '',
-    examples: [],
-    models: [],
-  });
-  const models = info.models || [];
-  const [selectedModel, setSelectedModel] = useState(models[0]?.name);
-  const [status, setStatus] = useState<ExtractorStatus | null>(null);
+function copyToClipboard(text: string) {
+  // Create a textarea element to temporarily hold the text
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
 
-  const handleLoadModel = () => {
-    window.myAPI.send(`${props.name}-load`, { selectedModel });
-  };
+  // Set the textarea to be invisible
+  textarea.style.position = 'absolute';
+  textarea.style.left = '-9999px';
 
-  useEffect(() => {
-    // get service info
-    window.myAPI?.receive(`${props.name}-info`, (info: ServiceInfo) => {
-      console.log(info);
-      setInfo(info);
-      setSelectedModel(info.models[0].name);
-    });
+  // Append the textarea to the document
+  document.body.appendChild(textarea);
 
-    // get errors
-    window.myAPI?.receive(`${props.name}-error`, (message: string) => {
-      console.log(message);
-    });
+  // Select the text in the textarea
+  textarea.select();
 
-    // get status
-    window.myAPI?.receive(
-      `${props.name}-status`,
-      (newStatus: ExtractorStatus) => {
-        setStatus((status) => ({ ...status, ...newStatus }));
-      }
-    );
+  // Copy the selected text to the clipboard
+  document.execCommand('copy');
 
-    // request models
-    window.myAPI?.send(`${props.name}-info`, true);
-
-    // send ping (to receive status)
-    const pingIntr = setInterval(() => {
-      window.myAPI.send(`${props.name}-ping`, true);
-    }, 500);
-    return () => {
-      clearInterval(pingIntr);
-    };
-  }, [props.name]);
-
-  return (
-    <div className="card w-full shadow-xl dark:shadow-white/5 dark:bg-black">
-      <div className="card-body flex flex-col gap-8">
-        <div className="flex flex-col w-full gap-2">
-          <div className="w-full flex justify-between items-center">
-            <h2 className="card-title w-full">{props.name}</h2>
-            <p
-              className={clsx('status-text min-w-max', {
-                'text-green-300': status?.status === 'ready',
-              })}
-            >
-              {status?.status === 'progress' ? (
-                <>progress ({status?.progress.toFixed(2)}%)</>
-              ) : (
-                status?.status || 'Not Ready'
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="status-text">Repo: {status?.name}</p>
-            {status?.total && (
-              <p className="status-text">
-                Size: {(status.total * 10 ** -6).toFixed(2)}MB
-              </p>
-            )}
-          </div>
-        </div>
-        <ServiceExamples examples={info.examples} basePath={props.basePath} />
-        <div className="flex flex-col card-actions w-full">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center">
-              <label>Model:</label>
-              <select
-                className="select w-full select-ghost"
-                value={selectedModel}
-                onChange={(e) => {
-                  setSelectedModel(e.target.value);
-                }}
-              >
-                {models?.map((model) => (
-                  <option key={model.name} value={model.name}>
-                    {model.name} {model.loaded ? '(Loaded)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              className={clsx('btn btn-sm', {
-                disabled: status?.loaded && status.name === selectedModel,
-              })}
-              disabled={!!status?.loaded && status.name === selectedModel}
-              onClick={handleLoadModel}
-            >
-              Load Model
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // Remove the textarea from the document
+  document.body.removeChild(textarea);
 }
 
 export default function App() {
