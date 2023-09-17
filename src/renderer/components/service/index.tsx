@@ -46,6 +46,7 @@ export default function ServiceItem(props: { name: string; basePath: string }) {
 
     // request models
     window.myAPI?.send(`${props.name}-info`, true);
+    window.myAPI?.send(`${props.name}-status`, true);
 
     // send ping (to receive status)
     const pingIntr = setInterval(() => {

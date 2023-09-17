@@ -8,8 +8,8 @@
 import { IpcMain } from 'electron';
 import fastify from 'fastify';
 import { pipeline as Pip } from '@xenova/transformers';
-import { AsyncReturnType } from '../../types/utils';
-import { getAvailableModels, modelsDir } from '../utils';
+import execute, { loadModel } from '../../libs/@xenova/transformers/worker';
+import { getAvailableModels, modelsDir, objToArray } from '../utils';
 import Models from '../../consts/models';
 import ServiceInterface, { ServiceConfig } from './types';
 import type ServicesSafe from '.';
@@ -26,7 +26,7 @@ export default class EmbeddingsService
 
   serviceName = serviceName;
 
-  extractor: AsyncReturnType<typeof Pip> | null | undefined;
+  extractorWorker: any;
 
   usedModel: string = Models[0];
 
@@ -50,7 +50,7 @@ export default class EmbeddingsService
     const { pipeline }: { pipeline: typeof Pip } = await Function(
       'return import("@xenova/transformers")'
     )();
-    this.extractor = await pipeline('feature-extraction', model, {
+    this.extractorWorker = await loadModel('feature-extraction', model, {
       progress_callback: cb,
       // quantized: false,
       cache_dir: modelsDir,
@@ -101,7 +101,7 @@ export default class EmbeddingsService
 
         const requestingModel = this.getRequestedModel(model);
 
-        if (requestingModel !== this.usedModel) {
+        if (!this.extractorWorker || requestingModel !== this.usedModel) {
           this.usedModel = requestingModel;
           await this.load({ selectedModel: this.usedModel }, console.log);
         }
@@ -142,10 +142,10 @@ export default class EmbeddingsService
   }
 
   async createEmbedding(input: string): Promise<any> {
-    const results = await this.extractor?.(input, {
+    const results = await execute(this.extractorWorker, input, {
       pooling: 'mean',
       normalize: true,
     });
-    return results?.data;
+    return objToArray(results?.data || {});
   }
 }

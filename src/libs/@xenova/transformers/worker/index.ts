@@ -38,25 +38,24 @@ export function loadModel(
 
     worker.on('message', message);
 
-    worker.once('messageerror', (err) => {
-      reject(err);
-    });
-
     worker.postMessage({
       event: 'loadModel',
       type,
       model,
-      ...options,
-      progress_callback: undefined,
+      options: {
+        ...options,
+        progress_callback: undefined,
+      },
     });
   });
 }
 
-export default function execute(
-  worker: Worker,
+export default async function execute(
+  worker: Worker | null | undefined,
   input: any,
   otherOptions?: any
 ): Promise<any> {
+  if (!worker) throw new Error('Not initialized');
   const taskId = randomUUID();
   return new Promise((resolve, reject) => {
     const message = ({
@@ -71,16 +70,14 @@ export default function execute(
       if (id !== taskId) return;
       switch (event) {
         case 'result':
-          console.log('done', props);
           resolve(props.result);
           break;
 
         case 'error':
-          console.log('error', props);
           reject(props.error);
           break;
       }
-      worker.terminate();
+      worker.off('message', message);
     };
 
     worker.on('message', message);
@@ -89,7 +86,7 @@ export default function execute(
       id: taskId,
       event: 'execute',
       input,
-      ...otherOptions,
+      options: otherOptions,
     });
   });
 }

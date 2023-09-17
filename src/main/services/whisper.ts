@@ -8,6 +8,8 @@ import { IpcMain } from 'electron';
 import fastify from 'fastify';
 import { pipeline as Pip } from '@xenova/transformers';
 import fastifyMultipart from '@fastify/multipart';
+import { Worker } from 'worker_threads';
+import execute, { loadModel } from '../../libs/@xenova/transformers/worker';
 import convertAudioToSample from '../../libs/audioConverterToSample';
 import { AsyncReturnType } from '../../types/utils';
 import { getAvailableModels, modelsDir } from '../utils';
@@ -42,7 +44,7 @@ export default class whisperService
 
   serviceName = serviceName;
 
-  extractor: AsyncReturnType<typeof Pip> | null | undefined;
+  extractorWorker: Worker | null | undefined;
 
   usedModel: string = Models[0];
 
@@ -60,15 +62,15 @@ export default class whisperService
         ? Models[props.selectedModel]
         : props.selectedModel || this.usedModel || Models[0];
 
-    // eslint-disable-next-line no-new-func
-    const { pipeline }: { pipeline: typeof Pip } = await Function(
-      'return import("@xenova/transformers")'
-    )();
-    this.extractor = await pipeline('automatic-speech-recognition', model, {
-      progress_callback: cb,
-      // quantized: false,
-      cache_dir: modelsDir,
-    });
+    this.extractorWorker = await loadModel(
+      'automatic-speech-recognition',
+      model,
+      {
+        progress_callback: cb,
+        // quantized: false,
+        cache_dir: modelsDir,
+      }
+    );
   }
 
   async getInfo(): Promise<ServiceInfo> {
@@ -81,6 +83,8 @@ export default class whisperService
           body: {
             file: {
               type: 'file',
+              multiple: false,
+              accept: 'audio/*',
             },
           },
         },
@@ -130,26 +134,13 @@ export default class whisperService
               mimetype: string;
             }[];
           };
-          if (model && model !== this.usedModel) {
-            const k =
-              this.config?.modelAliases?.[model] ||
-              Object.entries(this.config?.modelAliases || {}).filter(
-                ([keyreg, res]) => new RegExp(keyreg).test(model)
-              )[0]?.[1] ||
-              (Models.includes(model) ? model : Models[0]);
 
-            this.usedModel = typeof k === 'number' ? Models[k] : k;
-            await this.load(
-              { selectedModel: this.usedModel },
-              this.sendStatus.bind(this)
-            );
+          const requestingModel = this.getRequestedModel(model);
+
+          if (!this.extractorWorker || requestingModel !== this.usedModel) {
+            this.usedModel = requestingModel;
+            await this.load({ selectedModel: this.usedModel }, console.log);
           }
-
-          if (!this.extractor)
-            await this.load(
-              { selectedModel: this.usedModel },
-              this.sendStatus.bind(this)
-            );
 
           if (!file?.[0]) throw new Error('You need at least one audio file');
 
@@ -176,7 +167,8 @@ export default class whisperService
   }
 
   async transcript(input: Float32Array | Float64Array): Promise<string> {
-    const results = await this.extractor?.(input);
+    if (!this.extractorWorker) return '';
+    const results = await execute(this.extractorWorker, input);
     return results?.text;
   }
 }

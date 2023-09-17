@@ -23,6 +23,9 @@ export interface ServiceExample {
 
       /** incase of type = "file" you can use this to determine if it accepts multiple files */
       multiple?: boolean;
+
+      /** incase of type = "file" you can use this to determine what files to accepts */
+      accept?: string;
     }
   >;
 

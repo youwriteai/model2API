@@ -1,12 +1,23 @@
+/* eslint-disable react/jsx-props-no-spreading */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable consistent-return */
+/* eslint-disable no-use-before-define */
+/* eslint-disable no-nested-ternary */
+/* eslint-disable no-undef */
+/* eslint-disable react/require-default-props */
+/* eslint-disable react/no-unused-prop-types */
 /* eslint-disable react/button-has-type */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable react/destructuring-assignment */
 import type { ServiceInfo } from 'types/service';
-import { useState } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import path from 'path';
 import clsx from 'clsx';
+import { useToggle } from 'usehooks-ts';
 import Dropdown from '../dropdown';
 
 export default function ServicePlayground(props: {
@@ -116,9 +127,16 @@ export default function ServicePlayground(props: {
                     <textarea
                       className="w-full p-2 rounded-md overflow-hidden"
                       name={key}
-                      id={key}
                       defaultValue={JSON.stringify(val.defaultValue, null, 2)}
                       rows={7}
+                    />
+                  ) : val.type === 'file' ? (
+                    <FileInput
+                      key={selectedExample.urlPath + key}
+                      name={key}
+                      className="w-full"
+                      accept={val.accept}
+                      multiple={val.multiple}
                     />
                   ) : (
                     <input
@@ -126,7 +144,6 @@ export default function ServicePlayground(props: {
                       type={val.type || 'text'}
                       key={selectedExample.urlPath + key}
                       name={key}
-                      id={key}
                       defaultValue={val.defaultValue as any}
                     />
                   )}
@@ -151,6 +168,118 @@ export default function ServicePlayground(props: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function FileInput(props: {
+  name: string;
+  multiple?: boolean;
+  accept?: string;
+  className?: string;
+}) {
+  const dropareaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dropping, setDropping] = useState(false);
+  const [_, triggerReload] = useToggle();
+  const id = `input-${useId()}`;
+
+  function preventDefaults(e: any) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function highlight(e: any) {
+    preventDefaults(e);
+    setDropping(true);
+  }
+
+  function unhighlight(e: any) {
+    preventDefaults(e);
+    setDropping(false);
+  }
+
+  useEffect(() => {
+    if (!dropareaRef.current) return;
+
+    function handleDrop(e: any) {
+      preventDefaults(e);
+
+      setDropping(false);
+
+      if (inputRef.current) inputRef.current.files = e.dataTransfer.files;
+    }
+
+    dropareaRef.current.addEventListener('drop', handleDrop, false);
+
+    return () => {
+      dropareaRef.current?.removeEventListener('drop', handleDrop, false);
+    };
+  }, [dropareaRef.current]);
+  return (
+    <div
+      ref={dropareaRef}
+      className={clsx(
+        'border border-opacity-60 m-2 p-4',
+        {
+          'border-yellow-300 border-opacity-100 hover:cursor-grabbing':
+            dropping,
+        },
+        props.className
+      )}
+      onDragEnter={highlight}
+      onDragOver={highlight}
+      onDragLeave={unhighlight}
+    >
+      <div className="flex flex-col gap-2 p-4 cursor-pointer min-h-16">
+        {inputRef.current?.files?.length ? (
+          Object.entries(inputRef.current?.files || {}).map(([i, file]) => (
+            <div className="flex justify-between items-center" key={file.path}>
+              <div>{file.name}</div>
+
+              <div
+                className="btn"
+                onClick={() => {
+                  if (!inputRef.current) return;
+
+                  const fileListArr = Array.from(inputRef.current.files || []);
+                  fileListArr.splice(parseInt(i, 10), 1); // here u remove the file
+                  const dt = new DataTransfer();
+                  fileListArr.forEach((file) => dt.items.add(file));
+
+                  inputRef.current.files = dt.files;
+
+                  triggerReload();
+                }}
+              >
+                x
+              </div>
+            </div>
+          ))
+        ) : (
+          <div
+            className="text-center w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              inputRef.current?.click();
+            }}
+          >
+            Drag & Drop
+          </div>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        id={id}
+        type="file"
+        className="hidden"
+        name={props.name}
+        multiple={props.multiple}
+        accept={props.accept}
+        onChange={() => {
+          triggerReload();
+        }}
+      />
     </div>
   );
 }

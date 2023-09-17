@@ -1,6 +1,6 @@
 {
   "name": "model2api",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "selfhosted AI services",
   "keywords": [
     "electron",
@@ -111,7 +111,8 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0",
     "usehooks-ts": "^2.9.1",
-    "wavefile": "^11.0.0"
+    "wavefile": "^11.0.0",
+    "web-audio-api": "^0.2.2"
   },
   "devDependencies": {
     "@electron/notarize": "^1.2.4",

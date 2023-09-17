@@ -18,7 +18,7 @@ parentPort.on('message', async (props) => {
           'return import("@xenova/transformers")'
         )();
 
-        this.extractor = await pipeline(props.type, props.model, {
+        extractor = await pipeline(props.type, props.model, {
           ...props.options,
           progress_callback: (progress) => {
             parentPort.postMessage({
@@ -52,13 +52,11 @@ parentPort.on('message', async (props) => {
           ...props.options,
         });
 
-        console.log({ result });
-
         parentPort.postMessage({
           id: props.id,
           event: "result",
           props:{
-            result
+            result: JSON.parse(JSON.stringify(result))
           }
         });
 
@@ -67,13 +65,9 @@ parentPort.on('message', async (props) => {
           id: props.id,
           event: "error",
           props:{
-            error
+            error: error?.message || error
           }
         });
       }
   }
-});
-
-parentPort.on('close', () => {
-  console.log('goodbye worker');
 });

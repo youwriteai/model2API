@@ -142,3 +142,12 @@ export async function tryGussingFfmpegLoc() {
   }
   return listofPossiblePaths[0];
 }
+
+export function objToArray(obj: any) {
+  const sortedKeys = Object.keys(obj)
+    .map(Number) // Convert keys to numbers
+    .sort((a, b) => a - b); // Sort numerically
+
+  // Convert the sorted keys to an array of values
+  return sortedKeys.map((key) => obj[key]);
+}
