@@ -1,6 +1,6 @@
 {
   "name": "model2api",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "selfhosted AI services",
   "license": "MIT",
   "author": {
@@ -14,6 +14,10 @@
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
   },
   "dependencies": {
-    "@xenova/transformers": "^2.6.0"
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@xenova/transformers": "^2.6.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "mime-types": "^2.1.35",
+    "wavefile": "^11.0.0"
   }
 }

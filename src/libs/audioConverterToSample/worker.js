@@ -3,8 +3,6 @@
 /* eslint-disable promise/param-names */
 /* eslint-disable no-use-before-define */
 /* eslint-disable consistent-return */
-
-const { platform } = require('os');
 const { parentPort } = require('node:worker_threads');
 
 /* eslint-disable prefer-destructuring */
@@ -59,7 +57,7 @@ const ffmpegDecoder = {
     if (!this.ffmpeg) {
       this.ffmpeg = (await import('fluent-ffmpeg')).default;
 
-      this.ffmpegPth = customffmpegPath || (await tryGussingFfmpegLoc());
+      this.ffmpegPth = customffmpegPath;
 
       process.stdout.write(`\nffmpeg location: ${this.ffmpegPth}\n`);
     }
@@ -163,30 +161,6 @@ const ffmpegDecoder = {
     }
   },
 };
-
-const pf = platform();
-async function tryGussingFfmpegLoc() {
-  const listofPossiblePaths = [];
-
-  if (pf === 'win32') {
-    const paths = (process.env.path || '')?.split(';');
-    paths.forEach((p) => {
-      if (
-        p.toLowerCase().includes(`ffmpeg`) &&
-        p.toLowerCase().includes(`bin`)
-      ) {
-        listofPossiblePaths.push(path.join(p, './ffmpeg.exe'));
-      }
-    });
-  } else {
-    const { default: ffmpegPath } = await import('@ffmpeg-installer/ffmpeg');
-    listofPossiblePaths.push(
-      ffmpegPath.path?.replace('app.asar', 'app.asar.unpacked') ||
-        `/usr/bin/ffmpeg`
-    );
-  }
-  return listofPossiblePaths[0];
-}
 
 parentPort.on('message', async ({ id, buffer, mimeType, options }) => {
   try {

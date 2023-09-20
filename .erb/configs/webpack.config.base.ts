@@ -4,6 +4,8 @@
 
 import webpack from 'webpack';
 import TsconfigPathsPlugins from 'tsconfig-paths-webpack-plugin';
+import path from 'path';
+import { readFileSync } from 'fs';
 import webpackPaths from './webpack.paths';
 import { dependencies as externals } from '../../release/app/package.json';
 
@@ -64,9 +66,20 @@ const configuration: webpack.Configuration = {
   plugins: [
     new webpack.DefinePlugin({
       'process.env.FLUENTFFMPEG_COV': false,
-    }),
-    new webpack.EnvironmentPlugin({
-      NODE_ENV: 'production',
+      'process.env.WORKERCONTENT_XENOVA': readFileSync(
+        path.join(
+          webpackPaths.srcPath,
+          './libs/@xenova/transformers/worker/worker.js'
+        ),
+        'utf-8'
+      ),
+      'process.env.WORKERCONTENT_AUDIOCONVERTERTOSAMPLE': readFileSync(
+        path.join(
+          webpackPaths.srcPath,
+          './libs/audioConverterToSample/worker.js'
+        ),
+        'utf-8'
+      ),
     }),
   ],
 };

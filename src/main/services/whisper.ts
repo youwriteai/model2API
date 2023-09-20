@@ -161,6 +161,7 @@ export default class whisperService
         }
       }
     );
+
     app.get('/api/audio/transcriptions/models', (req, reply) => {
       reply.send({ models: Models });
     });

@@ -7,7 +7,6 @@
 
 import { IpcMain } from 'electron';
 import fastify from 'fastify';
-import { pipeline as Pip } from '@xenova/transformers';
 import execute, { loadModel } from '../../libs/@xenova/transformers/worker';
 import { getAvailableModels, modelsDir, objToArray } from '../utils';
 import Models from '../../consts/models';
@@ -46,10 +45,6 @@ export default class EmbeddingsService
         ? Models[props.selectedModel]
         : props.selectedModel || this.usedModel || Models[0];
 
-    // eslint-disable-next-line no-new-func
-    const { pipeline }: { pipeline: typeof Pip } = await Function(
-      'return import("@xenova/transformers")'
-    )();
     this.extractorWorker = await loadModel('feature-extraction', model, {
       progress_callback: cb,
       // quantized: false,

@@ -18,11 +18,12 @@ parentPort.on('message', async (props) => {
           'return import("@xenova/transformers")'
         )();
 
+
         extractor = await pipeline(props.type, props.model, {
           ...props.options,
           progress_callback: (progress) => {
             parentPort.postMessage({
-              event:'loadModel-progress',
+              event: 'loadModel-progress',
               props:{
                 progress
               }

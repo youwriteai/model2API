@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 /* eslint-disable no-console */
 /* eslint-disable import/no-cycle */
 /* eslint-disable new-cap */
@@ -17,12 +18,21 @@ import path from 'path';
 // import { OggOpusDecoder } from 'ogg-opus-decoder';
 import Models from '../consts/models';
 import { DefaultSettings } from './services/types';
+import config from '../../package.json';
 
 export const isProduction = process.env.NODE_ENV === 'production';
 export const isDevelopment =
   process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 const exePath = process.argv[0];
+
+const appData =
+  process.env.APPDATA ||
+  (process.platform === 'darwin'
+    ? `${process.env.HOME}/Library/Preferences`
+    : `${process.env.HOME}/.local/share`);
+
+export const appDataPath = path.join(appData, `./${config.build.productName}`);
 
 export const homePath = isDevelopment
   ? path.join(process.cwd(), './release/app/dist')
@@ -40,9 +50,9 @@ try {
   fss.mkdirSync(tempPath);
 }
 
-export const modelsDir = path.join(homePath, './models');
+export const modelsDir = path.join(appDataPath, './models');
 
-export const configPath = path.join(homePath, './config.json');
+export const configPath = path.join(appDataPath, './config.json');
 
 // eslint-disable-next-line prefer-const
 export let defaultSettings: DefaultSettings = {
@@ -66,12 +76,16 @@ export let defaultSettings: DefaultSettings = {
   },
 };
 
-export async function getConfig() {
+let cachedConfig: DefaultSettings | undefined;
+
+export async function getConfig(cached = true) {
+  if (cached && cachedConfig) return cachedConfig;
+
   try {
     await fs.stat(configPath);
-    return JSON.parse(
+    return (cachedConfig = JSON.parse(
       await fs.readFile(configPath, 'utf8')
-    ) as typeof defaultSettings;
+    ) as typeof defaultSettings);
   } catch {
     await fs.writeFile(
       configPath,
