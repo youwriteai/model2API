@@ -24,9 +24,13 @@ export const isDevelopment =
 
 const exePath = process.argv[0];
 
-const homePath = isDevelopment
+export const homePath = isDevelopment
   ? path.join(process.cwd(), './release/app/dist')
   : path.join(exePath, '..');
+
+export const appPath = isDevelopment
+  ? path.join(process.cwd(), './release/app')
+  : path.join(exePath, '../resources/app');
 
 export const tempPath = path.join(homePath, './temp');
 

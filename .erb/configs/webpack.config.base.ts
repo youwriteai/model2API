@@ -57,6 +57,7 @@ const configuration: webpack.Configuration = {
     plugins: [new TsconfigPathsPlugins()],
     fallback: {
       path: require.resolve('path-browserify'),
+      os: require.resolve('os-browserify'),
     },
   },
 
