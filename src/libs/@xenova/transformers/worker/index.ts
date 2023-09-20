@@ -79,6 +79,9 @@ export default async function execute(
           resolve(props.result);
           break;
 
+        case 'update':
+          return;
+
         case 'error':
           reject(props.error);
           break;

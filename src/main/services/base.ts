@@ -46,11 +46,19 @@ export default class ServiceBase implements ServiceInterface {
     });
 
     this.ipc?.on(`${this.serviceName}-status`, async (e) => {
-      e.reply?.(await this.getStatus());
+      try {
+        e.reply?.(await this.getStatus());
+      } catch {
+        console.log('error on replying to status');
+      }
     });
 
     this.ipc?.on(`${this.serviceName}-info`, async (e) => {
-      e.reply?.(`${this.serviceName}-info`, await this.getInfo());
+      try {
+        e.reply?.(`${this.serviceName}-info`, await this.getInfo());
+      } catch {
+        console.log('error on replying to info');
+      }
     });
   }
 

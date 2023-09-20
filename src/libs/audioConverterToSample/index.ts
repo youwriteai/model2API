@@ -35,7 +35,6 @@ export default function convertAudioToSample(
       if (id !== id) return;
       switch (event) {
         case 'result':
-          console.log('done');
           resolve(props.result);
           break;
 

@@ -11,7 +11,6 @@ import fastifyMultipart from '@fastify/multipart';
 import { Worker } from 'worker_threads';
 import execute, { loadModel } from '../../libs/@xenova/transformers/worker';
 import convertAudioToSample from '../../libs/audioConverterToSample';
-import { AsyncReturnType } from '../../types/utils';
 import { getAvailableModels, modelsDir } from '../utils';
 import ServiceInterface, { ServiceConfig } from './types';
 import ServiceBase from './base';
@@ -169,7 +168,7 @@ export default class whisperService
 
   async transcript(input: Float32Array | Float64Array): Promise<string> {
     if (!this.extractorWorker) return '';
-    const results = await execute(this.extractorWorker, input);
-    return results?.text;
+    const result = await execute(this.extractorWorker, input);
+    return result;
   }
 }
