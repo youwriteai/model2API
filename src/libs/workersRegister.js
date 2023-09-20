@@ -27,6 +27,8 @@ try {
     force: true,
     recursive: true,
   });
+} catch {
+  /* empty */
 } finally {
   try {
     fs.mkdirSync(workersPath, {
