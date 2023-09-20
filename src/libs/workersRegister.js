@@ -22,7 +22,12 @@ const workers = [
 
 try {
   fs.statSync(workersPath);
-} catch {
+
+  fs.rmSync(workersPath, {
+    force: true,
+    recursive: true,
+  });
+} finally {
   try {
     fs.mkdirSync(workersPath, {
       recursive: true,
